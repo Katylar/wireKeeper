@@ -1,34 +1,4 @@
 @font-face {
-    font-family: "Electrolize";
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
-    src:
-        local("Electrolize Regular"),
-        url("/fonts/Electrolize-Regular.woff2") format("woff2");
-}
-
-@font-face {
-    font-family: "Audiowide";
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
-    src:
-        local("Audiowide Regular"),
-        url("/fonts/Audiowide-Regular.woff2") format("woff2");
-}
-
-@font-face {
-    font-family: "Michroma";
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
-    src:
-        local("Michroma Regular"),
-        url("/fonts/Michroma-Regular.woff2") format("woff2");
-}
-
-@font-face {
     font-family: "Lato";
     font-weight: 100;
     font-style: normal;
@@ -117,61 +87,6 @@
     src:
         local("Lato Black Italic"),
         url("/fonts/Lato-BlackItalic.woff2") format("woff2");
-}
-
-@font-face {
-    font-family: "Orbitron";
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
-    src:
-        local("Orbitron Regular"),
-        url("/fonts/Orbitron-Regular.woff2") format("woff2");
-}
-@font-face {
-    font-family: "Orbitron";
-    font-weight: 500;
-    font-style: normal;
-    font-display: swap;
-    src:
-        local("Orbitron Medium"),
-        url("/fonts/Orbitron-Medium.woff2") format("woff2");
-}
-@font-face {
-    font-family: "Orbitron";
-    font-weight: 600;
-    font-style: normal;
-    font-display: swap;
-    src:
-        local("Orbitron SemiBold"),
-        url("/fonts/Orbitron-SemiBold.woff2") format("woff2");
-}
-@font-face {
-    font-family: "Orbitron";
-    font-weight: 700;
-    font-style: normal;
-    font-display: swap;
-    src:
-        local("Orbitron Bold"),
-        url("/fonts/Orbitron-Bold.woff2") format("woff2");
-}
-@font-face {
-    font-family: "Orbitron";
-    font-weight: 800;
-    font-style: normal;
-    font-display: swap;
-    src:
-        local("Orbitron ExtraBold"),
-        url("/fonts/Orbitron-ExtraBold.woff2") format("woff2");
-}
-@font-face {
-    font-family: "Orbitron";
-    font-weight: 900;
-    font-style: normal;
-    font-display: swap;
-    src:
-        local("Orbitron Black"),
-        url("/fonts/Orbitron-Black.woff2") format("woff2");
 }
 
 @font-face {
@@ -355,14 +270,14 @@ p {
 
 h1,
 .headline {
-    font-family: var(--font-orbitron);
+    font-family: var(--font-lato);
     line-height: 1.2;
     letter-spacing: 0.0175rem;
 }
 
 h2,
 .subheadline {
-    font-family: var(--font-electrolize);
+    font-family: var(--font-lato);
     line-height: 1.2;
     letter-spacing: 0.015rem;
 }
@@ -370,7 +285,7 @@ h2,
 h3,
 h4,
 h5 {
-    font-family: var(--font-audiowide);
+    font-family: var(--font-lato);
     line-height: 1.2;
     letter-spacing: 0.015rem;
 }
@@ -445,10 +360,10 @@ small,
 }
 
 blockquote .margin-text {
-    font-family: var(--font-orbitron);
+    font-family: var(--font-lato);
 }
 
 .deckline,
 .breadcrumb {
-    font-family: var(--font-michroma);
+    font-family: var(--font-lato);
 }

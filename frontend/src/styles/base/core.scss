@@ -121,3 +121,50 @@ article.content {
 }
 
 // SPECIFIC GLOBAL STYLES
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+
+    .main-nav {
+        background: #181825;
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #313244;
+
+        .nav-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #89b4fa;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+
+            a {
+                color: #a6adc8;
+                text-decoration: none;
+                font-weight: 600;
+                transition: color 0.2s;
+
+                &:hover,
+                &.active {
+                    color: #cdd6f4;
+                }
+            }
+        }
+
+        .nav-status {
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+    }
+
+    .page-content {
+        padding: 2rem;
+        flex-grow: 1;
+    }
+}

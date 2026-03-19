@@ -446,7 +446,7 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
             if unique_new:
                 with open(msg_file, 'w', encoding='utf-8') as f:
                     json.dump(combined, f, indent=4, ensure_ascii=False)
-                await manager.broadcast({"event": "log", "message": f"Archived {len(unique_new)} text/media records."})
+                await manager.broadcast({"event": "log", "message": f"Saved {len(unique_new)} text/media records."})
         except Exception as e: 
             await manager.broadcast({"event": "error", "message": f"Error saving messages: {e}"})
 

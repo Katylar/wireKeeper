@@ -1,0 +1,59 @@
+// src/styles/_logviewer.scss
+
+.log-viewer-container {
+    background: #11111b; // Slightly darker than the app background for contrast
+    border: 1px solid #313244;
+    border-radius: 8px;
+    padding: 1rem;
+    height: 250px;
+    overflow-y: auto;
+    font-family: "Consolas", "Monaco", "Courier New", monospace;
+    font-size: 0.85rem;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    margin-top: 1.5rem;
+
+    // Custom slim scrollbar
+    &::-webkit-scrollbar {
+        width: 8px;
+    }
+    &::-webkit-scrollbar-track {
+        background: #181825;
+    }
+    &::-webkit-scrollbar-thumb {
+        background: #45475a;
+        border-radius: 4px;
+
+        &:hover {
+            background: #585b70;
+        }
+    }
+
+    .log-entry {
+        margin-bottom: 0.35rem;
+        line-height: 1.4;
+        word-break: break-all;
+
+        .log-time {
+            color: #6c7086;
+            margin-right: 0.75rem;
+            user-select: none; // Prevents highlighting the timestamp when copying logs
+        }
+
+        .log-text {
+            color: #cdd6f4;
+        }
+
+        // Color coding based on the WebSocket event type
+        &.log-error .log-text {
+            color: #f38ba8; // Red
+        }
+
+        &.log-success .log-text {
+            color: #a6e3a1; // Green
+        }
+
+        &.log-warning .log-text {
+            color: #f9e2af; // Yellow
+        }
+    }
+}

@@ -1,21 +1,42 @@
 import React from "react";
 
-export default function ChatList({ chats, activeTasks, onDownload }) {
-    // Helper to aggregate live WebSocket data for a specific chat
+export default function ChatList({
+    chats,
+    activeTasks,
+    activeScans,
+    onDownload,
+}) {
     const getChatActiveStatus = (chatId) => {
         const tasks = Object.values(activeTasks).filter(
             (t) => t.chat_id === chatId,
         );
+        const isScanning = Boolean(activeScans && activeScans[chatId]);
+
+        // Scenario A: It's just scanning, no downloads yet
+        if (tasks.length === 0 && isScanning) {
+            return {
+                isScanning: true,
+                activeCount: 0,
+                speed: 0,
+                queueInfo: "Scanning database & Telegram...",
+            };
+        }
+
+        // Scenario B: Nothing is happening
         if (tasks.length === 0) return null;
 
+        // Scenario C: Downloads are actively happening
         const activeCount = tasks.length;
         const currentSpeedMB =
             tasks.reduce((sum, t) => sum + (t.speed || 0), 0) / 1024 / 1024;
+        const queueInfo = tasks[0].queue_info || "Processing...";
 
-        // Grab the queue info from the first active task for this chat (e.g., "heavy 1/5")
-        const queueInfo = tasks[0].queue_info || "Scanning...";
-
-        return { activeCount, speed: currentSpeedMB.toFixed(2), queueInfo };
+        return {
+            isScanning: false,
+            activeCount,
+            speed: currentSpeedMB.toFixed(2),
+            queueInfo,
+        };
     };
 
     return (
@@ -32,7 +53,7 @@ export default function ChatList({ chats, activeTasks, onDownload }) {
                 <tbody>
                     {chats.map((chat) => {
                         const activeStatus = getChatActiveStatus(chat.chat_id);
-                        const isDownloading = activeStatus !== null;
+                        const isBusy = activeStatus !== null;
 
                         return (
                             <tr key={chat.chat_id}>
@@ -41,26 +62,42 @@ export default function ChatList({ chats, activeTasks, onDownload }) {
                                     <div className="chat-meta">
                                         {chat.type} • ID: {chat.chat_id}
                                     </div>
-                                    {isDownloading && (
+
+                                    {/* The Live Progress/Scan Indicator */}
+                                    {isBusy && (
                                         <div className="progress-container">
                                             <div className="progress-text">
-                                                <span>
-                                                    {activeStatus.queueInfo} (
-                                                    {activeStatus.activeCount}{" "}
-                                                    threads)
+                                                <span
+                                                    style={{
+                                                        color: activeStatus.isScanning
+                                                            ? "#f9e2af"
+                                                            : "#a6e3a1",
+                                                    }}>
+                                                    {activeStatus.queueInfo}{" "}
+                                                    {activeStatus.activeCount >
+                                                    0
+                                                        ? `(${activeStatus.activeCount} threads)`
+                                                        : ""}
                                                 </span>
-                                                <span>
-                                                    {activeStatus.speed} MB/s
-                                                </span>
+                                                {activeStatus.activeCount >
+                                                    0 && (
+                                                    <span>
+                                                        {activeStatus.speed}{" "}
+                                                        MB/s
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="progress-bar-bg">
-                                                {/* We use an indeterminate animation here, or tie it to aggregate % if you prefer */}
                                                 <div
                                                     className="progress-bar-fill"
                                                     style={{
                                                         width: "100%",
                                                         animation:
                                                             "pulse 1s infinite alternate",
+                                                        backgroundColor:
+                                                            activeStatus.isScanning
+                                                                ? "#f9e2af"
+                                                                : "#a6e3a1", // Orange for scan, Green for download
                                                     }}></div>
                                             </div>
                                         </div>
@@ -90,27 +127,13 @@ export default function ChatList({ chats, activeTasks, onDownload }) {
                                     <button
                                         className="action-btn"
                                         onClick={() => onDownload(chat.chat_id)}
-                                        disabled={isDownloading}>
-                                        {isDownloading
-                                            ? "Downloading..."
-                                            : "Download"}
+                                        disabled={isBusy}>
+                                        {isBusy ? "Working..." : "Download"}
                                     </button>
                                 </td>
                             </tr>
                         );
                     })}
-                    {chats.length === 0 && (
-                        <tr>
-                            <td
-                                colSpan="4"
-                                style={{
-                                    textAlign: "center",
-                                    padding: "2rem",
-                                }}>
-                                No chats synced yet. Run a global sync!
-                            </td>
-                        </tr>
-                    )}
                 </tbody>
             </table>
         </div>
