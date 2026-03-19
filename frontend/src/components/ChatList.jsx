@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
+import "../styles/layout/chatlist.scss";
 
 export default function ChatList({
     chats,
@@ -7,144 +8,342 @@ export default function ChatList({
     activeScans,
     onDownload,
 }) {
+    // --- UI STATE ---
+    const [searchQuery, setSearchQuery] = useState("");
+    const [selectedChats, setSelectedChats] = useState(new Set());
+
+    const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+    const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+
+    // --- DATA PIPELINE ---
+    const processedChats = useMemo(() => {
+        return chats.filter((chat) => {
+            // if (chat.hidden && !showHidden) return false;
+
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                const matchName = chat.name?.toLowerCase().includes(q);
+                const matchFolderName = chat.folder_name
+                    ?.toLowerCase()
+                    .includes(q);
+                const matchOldName = chat.old_name?.toLowerCase().includes(q);
+                const matchId = chat.chat_id.toString().includes(q);
+                if (!matchName && !matchFolderName && !matchOldName && !matchId)
+                    return false;
+            }
+            return true;
+        });
+    }, [chats, searchQuery]);
+
+    const totalHiddenCount = chats.filter((c) => c.hidden).length;
+
+    // --- HANDLERS ---
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            setSelectedChats(new Set(processedChats.map((c) => c.chat_id)));
+        } else {
+            setSelectedChats(new Set());
+        }
+    };
+
+    const handleSelectOne = (chatId) => {
+        const newSet = new Set(selectedChats);
+        if (newSet.has(chatId)) newSet.delete(chatId);
+        else newSet.add(chatId);
+        setSelectedChats(newSet);
+    };
+
+    const isAllSelected =
+        processedChats.length > 0 &&
+        selectedChats.size === processedChats.length;
+
+    // --- RENDER HELPERS ---
     const getChatActiveStatus = (chatId) => {
         const tasks = Object.values(activeTasks).filter(
             (t) => t.chat_id === chatId,
         );
         const isScanning = Boolean(activeScans && activeScans[chatId]);
-
-        // Scenario A: It's just scanning, no downloads yet
-        if (tasks.length === 0 && isScanning) {
-            return {
-                isScanning: true,
-                activeCount: 0,
-                speed: 0,
-                queueInfo: "Scanning database & Telegram...",
-            };
-        }
-
-        // Scenario B: Nothing is happening
+        if (tasks.length === 0 && isScanning)
+            return { isScanning: true, queueInfo: "Scanning..." };
         if (tasks.length === 0) return null;
-
-        // Scenario C: Downloads are actively happening
-        const activeCount = tasks.length;
-        const currentSpeedMB =
-            tasks.reduce((sum, t) => sum + (t.speed || 0), 0) / 1024 / 1024;
-        const queueInfo = tasks[0].queue_info || "Processing...";
-
         return {
             isScanning: false,
-            activeCount,
-            speed: currentSpeedMB.toFixed(2),
-            queueInfo,
+            activeCount: tasks.length,
+            queueInfo: tasks[0].queue_info || "Downloading...",
         };
     };
 
     return (
         <div className="chat-list-container">
-            <table className="chat-table">
-                <thead>
-                    <tr>
-                        <th>Chat Details</th>
-                        <th>Statistics</th>
-                        <th>Batch Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {chats.map((chat) => {
-                        const activeStatus = getChatActiveStatus(chat.chat_id);
-                        const isBusy = activeStatus !== null;
+            {/* --- TOP CONTROL BAR --- */}
+            <div className="chat-controls-bar">
+                <div className="controls-row">
+                    {/* Updated Search Bar with Clear Button */}
+                    <div className="search-wrapper">
+                        <input
+                            type="text"
+                            className="search-box"
+                            placeholder="Search by name, folder, old name, or ID..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        {searchQuery && (
+                            <button
+                                className="clear-search-btn"
+                                onClick={() => setSearchQuery("")}
+                                title="Clear search">
+                                ✕
+                            </button>
+                        )}
+                    </div>
 
-                        return (
-                            <tr key={chat.chat_id}>
-                                <td>
-                                    <Link
-                                        to={`/chat/${chat.chat_id}`}
-                                        className="chat-name"
-                                        style={{
-                                            textDecoration: "none",
-                                            display: "block",
-                                        }}>
-                                        {chat.name}
-                                    </Link>
-                                    <div className="chat-meta">
-                                        {chat.type} • ID: {chat.chat_id}
-                                    </div>
+                    <div className="stats-text">
+                        Showing{" "}
+                        <span className="highlight">
+                            {processedChats.length}
+                        </span>{" "}
+                        chats (Total Hidden: {totalHiddenCount})
+                    </div>
+                </div>
 
-                                    {/* The Live Progress/Scan Indicator */}
-                                    {isBusy && (
-                                        <div className="progress-container">
-                                            <div className="progress-text">
-                                                <span
-                                                    style={{
-                                                        color: activeStatus.isScanning
-                                                            ? "#f9e2af"
-                                                            : "#a6e3a1",
-                                                    }}>
-                                                    {activeStatus.queueInfo}{" "}
-                                                    {activeStatus.activeCount >
-                                                    0
-                                                        ? `(${activeStatus.activeCount} threads)`
-                                                        : ""}
-                                                </span>
-                                                {activeStatus.activeCount >
-                                                    0 && (
-                                                    <span>
-                                                        {activeStatus.speed}{" "}
-                                                        MB/s
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="progress-bar-bg">
-                                                <div
-                                                    className="progress-bar-fill"
-                                                    style={{
-                                                        width: "100%",
-                                                        animation:
-                                                            "pulse 1s infinite alternate",
-                                                        backgroundColor:
-                                                            activeStatus.isScanning
-                                                                ? "#f9e2af"
-                                                                : "#a6e3a1", // Orange for scan, Green for download
-                                                    }}></div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </td>
-                                <td>
-                                    <div className="chat-meta">
-                                        Total:{" "}
-                                        {chat.total_messages.toLocaleString()}{" "}
-                                        msgs
+                <div className="controls-row">
+                    <div className="btn-group">
+                        <button
+                            className="control-btn"
+                            onClick={() =>
+                                setSortDropdownOpen(!sortDropdownOpen)
+                            }>
+                            Sort ▾
+                        </button>
+                        <button
+                            className="control-btn"
+                            onClick={() =>
+                                setFilterDropdownOpen(!filterDropdownOpen)
+                            }>
+                            Filter ▾
+                        </button>
+                    </div>
+
+                    <div className="btn-group">
+                        {selectedChats.size > 0 ? (
+                            <>
+                                <button className="control-btn">
+                                    Disable/Enable
+                                </button>
+                                <button className="control-btn">
+                                    Hide/Unhide
+                                </button>
+                                <button className="control-btn">
+                                    Batch Toggle
+                                </button>
+                                <button className="control-btn">
+                                    Schedule Selected
+                                </button>
+                                <button className="control-btn primary">
+                                    Archive Selected
+                                </button>
+                                <button className="control-btn accent">
+                                    Sync Selected ({selectedChats.size})
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button className="control-btn primary">
+                                    Archive All Chats
+                                </button>
+                                <button
+                                    className="control-btn accent"
+                                    title="Syncs all Enabled chats in the database">
+                                    Sync All Enabled
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* --- GRID HEADER --- */}
+            <div className="chat-grid-header">
+                <div className="cell checkbox-cell">
+                    <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        onChange={handleSelectAll}
+                        title="Select all visible"
+                    />
+                </div>
+                <div className="cell">Identity & Configuration</div>
+                <div className="cell">Statistics</div>
+                <div className="cell">Actions</div>
+            </div>
+
+            {/* --- GRID BODY --- */}
+            <div className="chat-grid-body">
+                {processedChats.map((chat) => {
+                    const activeStatus = getChatActiveStatus(chat.chat_id);
+                    const isBusy = activeStatus !== null;
+                    const isSelected = selectedChats.has(chat.chat_id);
+
+                    const isMultiTopic = chat.topics && chat.topics.length > 1;
+                    const isDeferred = Boolean(chat.defer);
+
+                    return (
+                        <div
+                            key={chat.chat_id}
+                            className={`chat-grid-row ${chat.hidden ? "is-hidden" : ""} ${!chat.enabled ? "is-disabled" : ""}`}>
+                            <div className="cell checkbox-cell">
+                                <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() =>
+                                        handleSelectOne(chat.chat_id)
+                                    }
+                                />
+                            </div>
+
+                            {/* IDENTITY & CONFIGURATION */}
+                            <div className="cell">
+                                <Link
+                                    to={`/chat/${chat.chat_id}`}
+                                    className="chat-name"
+                                    style={{ textDecoration: "none" }}>
+                                    {chat.name}
+                                </Link>
+                                {chat.old_name && (
+                                    <div className="old-name">
+                                        Previously: {chat.old_name}
                                     </div>
-                                    <div className="chat-meta">
-                                        Saved:{" "}
-                                        {chat.total_downloaded.toLocaleString()}{" "}
-                                        files
-                                    </div>
-                                </td>
-                                <td>
+                                )}
+                                <div className="chat-meta">
+                                    {chat.type} • ID: {chat.chat_id}
+                                </div>
+
+                                {/* Badges moved here as 3rd line */}
+                                <div className="badge-group">
                                     <span
-                                        className={`badge ${chat.is_batch ? "batch-active" : ""}`}>
-                                        {chat.is_batch
-                                            ? "Included"
-                                            : "Excluded"}
+                                        className={`badge ${chat.enabled ? "active" : "danger"}`}>
+                                        {chat.enabled ? "ENABLED" : "DISABLED"}
                                     </span>
-                                </td>
-                                <td>
-                                    <button
-                                        className="action-btn"
-                                        onClick={() => onDownload(chat.chat_id)}
-                                        disabled={isBusy}>
-                                        {isBusy ? "Working..." : "Download"}
+
+                                    <span
+                                        className={`badge ${chat.is_batch ? "active" : ""}`}>
+                                        BATCH: {chat.is_batch ? "ON" : "OFF"}
+                                    </span>
+
+                                    <span
+                                        className={`badge ${isDeferred ? "warn" : "active"}`}>
+                                        DEFERRED: {isDeferred ? "ON" : "OFF"}
+                                    </span>
+
+                                    {chat.hidden && (
+                                        <span className="badge warn">
+                                            HIDDEN
+                                        </span>
+                                    )}
+                                    {isMultiTopic && (
+                                        <span className="badge primary">
+                                            MULTI-TOPIC
+                                        </span>
+                                    )}
+                                </div>
+
+                                {isBusy && (
+                                    <div
+                                        style={{
+                                            marginTop: "0.5rem",
+                                            fontSize: "0.75rem",
+                                            color: activeStatus.isScanning
+                                                ? "#f9e2af"
+                                                : "#a6e3a1",
+                                        }}>
+                                        ↻ {activeStatus.queueInfo}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* STATISTICS */}
+                            <div className="cell">
+                                <div className="chat-meta">
+                                    Msgs:{" "}
+                                    <span style={{ color: "#cdd6f4" }}>
+                                        {chat.total_messages?.toLocaleString() ||
+                                            0}
+                                    </span>
+                                </div>
+                                <div className="chat-meta">
+                                    Saved:{" "}
+                                    <span style={{ color: "#cdd6f4" }}>
+                                        {chat.total_downloaded?.toLocaleString() ||
+                                            0}
+                                    </span>
+                                </div>
+                                <div className="chat-meta">
+                                    Size:{" "}
+                                    <span style={{ color: "#cdd6f4" }}>
+                                        0 GB
+                                    </span>
+                                </div>
+                                <div
+                                    className="chat-meta"
+                                    style={{
+                                        marginTop: "0.25rem",
+                                        fontSize: "0.7rem",
+                                    }}>
+                                    Last Msg: {chat.last_message_id || 0}
+                                </div>
+                                <div
+                                    className="chat-meta"
+                                    style={{ fontSize: "0.7rem" }}>
+                                    Updated:{" "}
+                                    {chat.last_download_scan
+                                        ? new Date(
+                                              chat.last_download_scan,
+                                          ).toLocaleDateString()
+                                        : "Never"}
+                                </div>
+                            </div>
+
+                            {/* ACTIONS */}
+                            <div className="cell">
+                                {/* Full-width Download Button */}
+                                <button
+                                    className="main-action-btn"
+                                    onClick={() => onDownload(chat.chat_id)}
+                                    disabled={isBusy || !chat.enabled}>
+                                    {isBusy ? "WORKING..." : "DOWNLOAD"}
+                                </button>
+
+                                {/* 2-Column Action Grid */}
+                                <div className="action-grid">
+                                    <button disabled={isBusy || !chat.enabled}>
+                                        Scan Only
                                     </button>
-                                </td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
+                                    <button>Schedule</button>
+                                    <button>Toggle Batch</button>
+                                    <button>Toggle Defer</button>
+                                    <button>Toggle Enable</button>
+                                    <button>Toggle Hide</button>
+                                    <button style={{ color: "#f38ba8" }}>
+                                        Purge DB
+                                    </button>
+                                    <button style={{ color: "#a6e3a1" }}>
+                                        Zip Archive
+                                    </button>
+                                </div>
+
+                                <div className="action-checkboxes">
+                                    <label>
+                                        <input type="checkbox" /> Validate
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" /> Overwrite
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 }

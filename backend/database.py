@@ -3,6 +3,7 @@ from config import DB_NAME
 
 async def init_db():
     conn = await aiosqlite.connect(DB_NAME)
+    
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS downloads (
             file_unique_id TEXT PRIMARY KEY,
@@ -17,6 +18,8 @@ async def init_db():
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    
+    # Cleaned up: All columns defined right from the start
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS chat_list (
             chat_id INTEGER PRIMARY KEY,
@@ -34,11 +37,12 @@ async def init_db():
             last_message_id INTEGER DEFAULT 0,
             last_download_scan DATETIME,
             last_archived DATETIME,
-            total_downloaded INTEGER DEFAULT 0
+            total_downloaded INTEGER DEFAULT 0,
+            enabled INTEGER DEFAULT 1,
+            hidden INTEGER DEFAULT 0
         )
     ''')
 
-    # --- NEW: Settings Table ---
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS settings (
             key TEXT PRIMARY KEY,
@@ -63,11 +67,6 @@ async def init_db():
                 ('ignored_extensions', '.aac,.accdb,.aiff,.amr,.apk,.app,.azw,.azw3,.bat,.bin,.bittorrent,.c,.cer,.chm,.cmd,.com,.cpl,.cpp,.crt,.cs,.csr,.css,.csv,.db,.dbf,.djvu,.dmg,.doc,.docx,.epub,.exe,.fb2,.flac,.gadget,.go,.htm,.html,.iba,.ics,.ipa,.jar,.java,.js,.json,.key,.kpf,.lit,.log,.lrf,.m4a,.mdb,.mid,.midi,.mobi,.mp2,.mp3,.msg,.msi,.numbers,.odp,.ods,.odt,.oga,.ogg,.opus,.pages,.pdb,.pdf,.pem,.php,.pif,.ppt,.pptx,.prc,.ps1,.py,.ra,.rb,.rss,.rtf,.scr,.sh,.snd,.sql,.sqlite,.tcr,.tex,.torrent,.txt,.vbs,.vcard,.vcf,.wav,.wma,.xapk,.xhtml,.xls,.xlsx,.xml')
             ]
             await conn.executemany("INSERT INTO settings (key, value) VALUES (?, ?)", default_settings)
-
-    try: await conn.execute("ALTER TABLE chat_list ADD COLUMN last_archived DATETIME"); await conn.commit()
-    except Exception: pass
-    try: await conn.execute("ALTER TABLE chat_list ADD COLUMN total_downloaded INTEGER DEFAULT 0"); await conn.commit()
-    except Exception: pass
 
     await conn.execute('CREATE INDEX IF NOT EXISTS idx_chat_msg ON downloads(chat_id, message_id)')
     await conn.commit()
@@ -146,7 +145,6 @@ async def update_total_downloaded(conn, chat_id=None):
         
     await conn.commit()
 
-# --- NEW: Settings Helpers ---
 async def get_settings_dict(conn):
     """Returns all settings as a dictionary."""
     async with conn.execute("SELECT key, value FROM settings") as cursor:
