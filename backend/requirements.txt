@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+websockets
+telethon
+aiosqlite
+unidecode
+cryptg
+python-dotenv

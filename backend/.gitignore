@@ -1,0 +1,20 @@
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Environment variables (Sensitive!)
+.env
+
+# SQLite Databases & temporary files
+*.db
+*.db-shm
+*.db-wal
+[backup] *
+
+# Telegram Session files (Sensitive!)
+*.session
+*.session-journal
+
+# Virtual Environments (if you ever move your venv into this folder)
+venv/
+env/

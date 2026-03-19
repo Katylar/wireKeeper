@@ -1,0 +1,83 @@
+.callout {
+    background: none;
+    filter: drop-shadow(1px 1px 0 var(--c-cyan))
+        drop-shadow(-1px -1px 0 var(--c-cyan))
+        drop-shadow(1px -1px 0 var(--c-cyan))
+        drop-shadow(-1px 1px 0 var(--c-cyan));
+    border-radius: 0;
+    max-width: 599px;
+    margin: 0;
+    padding: 0;
+    transition: all 500ms ease;
+
+    .cover {
+        background-position: right top;
+        background-repeat: no-repeat;
+        background-size: auto 150px;
+        border-bottom: 1px solid var(--c-cyan-dark);
+        transition: all 500ms ease;
+    }
+
+    a {
+        background: rgba(2, 2, 7, 0.9);
+        transition: all 500ms ease;
+        border: none;
+        clip-path: polygon(
+            10px 0%,
+            100% 0,
+            100% calc(100% - 20px),
+            95% 100%,
+            0 100%,
+            0 10%
+        );
+        display: block;
+        padding: 10px;
+        border-radius: 0;
+
+        &:hover,
+        &:focus,
+        &:active {
+            padding: 10px;
+            border: none;
+        }
+    }
+
+    .details {
+        transition: all 500ms ease;
+
+        h5 {
+            font-family: var(--f4);
+            color: var(--c-cyan);
+        }
+        .excerpt {
+            font-family: var(--f5);
+            color: var(--c-light);
+            font-size: 0.9em;
+            text-align: center;
+            display: none;
+        }
+        .subheading {
+            display: none;
+        }
+    }
+
+    &:hover,
+    &:focus {
+        filter: drop-shadow(1px 1px 0 var(--c-gold))
+            drop-shadow(-1px -1px 0 var(--c-gold))
+            drop-shadow(1px -1px 0 var(--c-gold))
+            drop-shadow(-1px 1px 0 var(--c-gold));
+
+        .cover {
+            border-bottom: 1px solid var(--c-gold);
+        }
+        .details h5 {
+            color: var(--c-gold);
+        }
+    }
+}
+
+.epigraph {
+
+} 
+

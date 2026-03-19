@@ -1,0 +1,52 @@
+@use "colors";
+
+$breakpoints: (
+    tiny: 359px,
+    small: 360px,
+    medium: 600px,
+    fat: 800px,
+    large: 1078px,
+    full: 1366px,
+    hd: 1920px,
+    uhd: 2500px,
+);
+
+@function breakpoint($breakpoint-value) {
+    @return map-get($breakpoints, $breakpoint-value);
+}
+
+:root {
+    --fontsize-modifier: 0px;
+
+    --text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.45);
+    --text-shadow-med: 2px 2px 3px rgba(0, 0, 0, 0.25);
+    --text-shadow-light: 1px 1px 0px rgba(255, 255, 255, 0.45);
+
+    --box-shadow:
+        0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+    --box-shadow-light:
+        0 4px 8px rgba(70, 70, 70, 0.05), 0 3px 3px rgba(88, 88, 88, 0.1),
+        0 -3px 3px rgba(88, 88, 88, 0.1);
+
+    --round-tiny: 4px;
+    --round-small: 8px;
+    --round-med: 16px;
+    --round-big: 24px;
+    --round-huge: 36px;
+
+    // FONTS
+
+    --font-roboto: "Roboto", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+    --font-orbitron:
+        "Orbitron", "Verdana", "Segoe UI", System, -apple-system,
+        BlinkMacSystemFont, sans-serif;
+    --font-michroma:
+        "Michroma", "Verdana", "Segoe UI", System, -apple-system,
+        BlinkMacSystemFont, sans-serif;
+    --font-electrolize:
+        "Electrolize", "Verdana", "Segoe UI", System, -apple-system,
+        BlinkMacSystemFont, sans-serif;
+    --font-audiowide:
+        "Audiowide", "Verdana", "Segoe UI", System, -apple-system,
+        BlinkMacSystemFont, sans-serif;
+}
