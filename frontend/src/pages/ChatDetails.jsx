@@ -1,29 +1,46 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useOutletContext, Link } from "react-router-dom";
+import FileList from "../components/FileList";
 
 export default function ChatDetails() {
-    const { id } = useParams(); // Grabs the ID from the URL
+    const { id } = useParams();
     const { activeTasks, activeScans } = useOutletContext();
+
     const [chat, setChat] = useState(null);
+    const [categorizedFiles, setCategorizedFiles] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // For now, we fetch all chats and filter.
-        // We can optimize this later with a dedicated backend route if needed.
-        fetch("http://localhost:39486/api/chats")
-            .then((res) => res.json())
-            .then((data) => {
-                const foundChat = data.find((c) => c.chat_id.toString() === id);
+        const fetchChatData = async () => {
+            setIsLoading(true);
+            try {
+                const [chatRes, filesRes] = await Promise.all([
+                    fetch("http://localhost:39486/api/chats"),
+                    fetch(`http://localhost:39486/api/chat/${id}/files`),
+                ]);
+
+                const chatsData = await chatRes.json();
+                const filesData = await filesRes.json();
+
+                const foundChat = chatsData.find(
+                    (c) => c.chat_id.toString() === id,
+                );
+
                 setChat(foundChat);
+                setCategorizedFiles(filesData);
+            } catch (err) {
+                console.error("Failed to fetch chat data:", err);
+            } finally {
                 setIsLoading(false);
-            })
-            .catch((err) => console.error(err));
+            }
+        };
+
+        fetchChatData();
     }, [id]);
 
     if (isLoading) return <p>Loading chat details...</p>;
     if (!chat) return <p>Chat not found in database.</p>;
 
-    // Check if this specific chat is currently downloading
     const tasks = Object.values(activeTasks).filter(
         (t) => t.chat_id.toString() === id,
     );
@@ -149,11 +166,20 @@ export default function ChatDetails() {
             </div>
 
             <div style={{ marginTop: "2rem" }}>
-                <h3 style={{ color: "#cdd6f4" }}>Archived Files</h3>
-                <p style={{ color: "#a6adc8" }}>
-                    {/* We will populate this list from the database in the next step! */}
-                    File history grid will go here...
+                <h3 style={{ color: "#cdd6f4", marginBottom: "0.5rem" }}>
+                    Archived Media Vault
+                </h3>
+                <p
+                    style={{
+                        color: "#a6adc8",
+                        fontSize: "0.9rem",
+                        marginTop: "0",
+                    }}>
+                    Displaying all successfully downloaded files categorized by
+                    type.
                 </p>
+
+                <FileList categorizedFiles={categorizedFiles} />
             </div>
         </div>
     );

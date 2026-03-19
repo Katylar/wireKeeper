@@ -156,6 +156,58 @@ async def start_download(
         "options": {"overwrite": overwrite, "validate": validate, "resume": resume}
     }
 
+@app.get("/api/chat/{chat_id}/files")
+async def get_chat_files(chat_id: int):
+    """Fetches all successfully downloaded files for a specific chat, categorized."""
+    
+    # Updated to match your exact SQLite schema
+    query = """
+        SELECT message_id, final_filename, original_filename, file_size, file_path, timestamp 
+        FROM downloads 
+        WHERE chat_id = ? AND status = 'success'
+        ORDER BY message_id DESC
+    """
+    
+    try:
+        async with db_pool.execute(query, (chat_id,)) as cursor:
+            rows = await cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        
+    categorized_files = {
+        "videos": [],
+        "images": [],
+        "archives": [],
+        "misc": []
+    }
+    
+    for row in rows:
+        # Unpack the row based on the new query order
+        msg_id, final_name, orig_name, size, path, date_dl = row
+        
+        category = "misc"
+        path_lower = path.lower() if path else ""
+        
+        # Standardize slashes for cross-platform checking
+        normalized_path = path_lower.replace('\\', '/')
+        if "/videos/" in normalized_path: category = "videos"
+        elif "/images/" in normalized_path: category = "images"
+        elif "/archives/" in normalized_path: category = "archives"
+        
+        file_data = {
+            "message_id": msg_id,
+            "filename": final_name,
+            "original_filename": orig_name,
+            "size_bytes": size or 0,
+            "file_path": path,
+            "date_downloaded": date_dl,
+            "category": category
+        }
+        
+        categorized_files[category].append(file_data)
+        
+    return categorized_files
+
 @app.post("/api/batch/start")
 async def start_batch(
     background_tasks: BackgroundTasks,

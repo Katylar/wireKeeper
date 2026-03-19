@@ -1,0 +1,153 @@
+// src/styles/layout/_filelist.scss
+
+.file-list-container {
+    display: flex;
+    flex-direction: column;
+    background: #1e1e2e;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    height: 700px;
+    margin-top: 1rem;
+
+    // Top Bar: Filters (Left) & Counter (Right)
+    .file-filters-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        background: #181825;
+        border-bottom: 1px solid #313244;
+
+        .filters {
+            display: flex;
+            gap: 1.5rem;
+
+            label {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                color: #cdd6f4;
+                font-size: 0.9rem;
+                cursor: pointer;
+                user-select: none;
+
+                input[type="checkbox"] {
+                    cursor: pointer;
+                    width: 16px;
+                    height: 16px;
+                    accent-color: #89b4fa;
+                }
+
+                &.disabled {
+                    color: #6c7086;
+                    cursor: not-allowed;
+                    input {
+                        cursor: not-allowed;
+                        opacity: 0.5;
+                    }
+                }
+            }
+        }
+
+        .file-count {
+            color: #a6e3a1; // Green accent for the counter
+            font-weight: bold;
+            font-size: 0.9rem;
+            letter-spacing: 0.05em;
+        }
+    }
+
+    // The 7-Column CSS Grid
+    $grid-layout: 80px 2.5fr 100px 2fr 100px 140px 3fr;
+
+    .file-table-header {
+        display: grid;
+        grid-template-columns: $grid-layout;
+        background: #181825;
+        padding: 0.75rem 1rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #a6adc8;
+        text-transform: uppercase;
+        border-bottom: 2px solid #313244;
+
+        .sortable {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            user-select: none;
+            transition: color 0.2s;
+
+            &:hover {
+                color: #cdd6f4;
+            }
+            &.active {
+                color: #89b4fa;
+            }
+        }
+    }
+
+    .file-row {
+        display: grid;
+        grid-template-columns: $grid-layout;
+        align-items: center;
+        padding: 0 1rem;
+        border-bottom: 1px solid #313244;
+        font-size: 0.85rem;
+        color: #cdd6f4;
+        transition: background-color 0.15s;
+
+        &:hover {
+            background: #313244;
+        }
+
+        .cell {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 1rem;
+
+            &.filename {
+                font-family: "Consolas", "Courier New", monospace;
+                color: #cdd6f4;
+            }
+
+            &.category {
+                text-transform: capitalize;
+                color: #f9e2af;
+            }
+
+            &.meta {
+                color: #a6adc8;
+            }
+
+            &.null-text {
+                color: #6c7086;
+                font-style: italic;
+            }
+
+            &.clickable-path {
+                color: #89b4fa;
+                cursor: pointer;
+                text-decoration: underline;
+                text-decoration-color: transparent;
+                transition: text-decoration-color 0.2s;
+
+                &:hover {
+                    text-decoration-color: #89b4fa;
+                }
+            }
+        }
+    }
+
+    .empty-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #6c7086;
+        font-style: italic;
+    }
+}
