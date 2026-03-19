@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./pages/Layout";
 import Home from "./pages/Home.jsx";
 import Settings from "./pages/Settings";
+import Logs from "./pages/Logs.jsx";
+import ChatDetails from "./pages/ChatDetails";
 import "./styles/main.scss";
 
 export default function App() {
@@ -12,6 +14,8 @@ export default function App() {
                 <Route path="/" element={<Layout />}>
                     <Route index element={<Home />} />
                     <Route path="settings" element={<Settings />} />
+                    <Route path="logs" element={<Logs />} />
+                    <Route path="chat/:id" element={<ChatDetails />} />
                 </Route>
             </Routes>
         </BrowserRouter>

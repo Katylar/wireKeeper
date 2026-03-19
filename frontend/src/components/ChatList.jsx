@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 export default function ChatList({
     chats,
@@ -58,7 +59,15 @@ export default function ChatList({
                         return (
                             <tr key={chat.chat_id}>
                                 <td>
-                                    <div className="chat-name">{chat.name}</div>
+                                    <Link
+                                        to={`/chat/${chat.chat_id}`}
+                                        className="chat-name"
+                                        style={{
+                                            textDecoration: "none",
+                                            display: "block",
+                                        }}>
+                                        {chat.name}
+                                    </Link>
                                     <div className="chat-meta">
                                         {chat.type} • ID: {chat.chat_id}
                                     </div>

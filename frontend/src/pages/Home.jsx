@@ -10,11 +10,16 @@ export default function Home() {
     const navigate = useNavigate();
 
     useEffect(() => {
+        // 1. If we haven't heard back from the backend yet, do nothing.
+        if (systemStatus === null) return;
+
+        // 2. If the backend specifically says setup is incomplete, redirect.
         if (systemStatus.setup_complete === false) {
-            navigate("/settings"); // Force them to settings if no API keys exist
+            navigate("/settings");
             return;
         }
 
+        // 3. Otherwise, fetch the chats!
         fetch("http://localhost:39486/api/chats")
             .then((res) => res.json())
             .then((data) => {

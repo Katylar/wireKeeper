@@ -8,7 +8,7 @@ export function useTelegramEngine() {
     const [logs, setLogs] = useState([]);
     const [activeTasks, setActiveTasks] = useState({});
     const [activeScans, setActiveScans] = useState({}); // NEW: Track scanning phase
-    const [systemStatus, setSystemStatus] = useState({ setup_complete: false });
+    const [systemStatus, setSystemStatus] = useState(null);
     const wsRef = useRef(null);
 
     useEffect(() => {
@@ -23,7 +23,7 @@ export function useTelegramEngine() {
             case "log":
             case "error":
                 setLogs((prev) => [
-                    ...prev.slice(-49),
+                    ...prev.slice(-9999),
                     {
                         time: new Date().toLocaleTimeString(),
                         text: data.message,
