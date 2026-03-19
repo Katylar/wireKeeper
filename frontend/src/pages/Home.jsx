@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import ChatList from "../components/ChatList";
 import "../styles/homepage.scss";
@@ -8,6 +8,16 @@ export default function Home() {
     const [chats, setChats] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const navigate = useNavigate();
+
+    const fetchChats = useCallback(async () => {
+        try {
+            const response = await fetch("http://localhost:39486/api/chats");
+            const data = await response.json();
+            setChats(data);
+        } catch (err) {
+            console.error("Failed to fetch chats:", err);
+        }
+    }, []);
 
     useEffect(() => {
         // 1. If we haven't heard back from the backend yet, do nothing.
@@ -28,6 +38,10 @@ export default function Home() {
             })
             .catch((err) => console.error(err));
     }, [systemStatus, navigate]);
+
+    useEffect(() => {
+        fetchChats();
+    }, [fetchChats]);
 
     const handleStartDownload = async (chatId) => {
         await fetch(`http://localhost:39486/api/download/${chatId}`, {
@@ -62,6 +76,7 @@ export default function Home() {
                 activeTasks={activeTasks}
                 activeScans={activeScans}
                 onDownload={handleStartDownload}
+                onRefresh={fetchChats}
             />
         </div>
     );

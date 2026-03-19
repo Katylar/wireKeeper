@@ -5,6 +5,7 @@ import os
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, BackgroundTasks, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import List
 from contextlib import asynccontextmanager
 from telethon import TelegramClient
 from telethon.network import ConnectionTcpAbridged
@@ -26,6 +27,11 @@ class SettingsUpdate(BaseModel):
     alt_download_path: str
     max_concurrent_heavy: str
     max_concurrent_light: str
+
+class ToggleRequest(BaseModel):
+    chat_ids: List[int]
+    field: str
+    value: bool
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -81,11 +87,12 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.get("/api/chats")
 async def get_chats():
     """Returns the comprehensive list of configured chats from the database."""
+    # FIX: We added 'defer' to the end of this SELECT statement
     query = """
         SELECT 
             chat_id, chat_name, chat_type, total_messages, is_batch,
             old_name, last_download_scan, last_message_id, topics, topics_exclude, 
-            last_archived, total_downloaded, enabled, hidden
+            last_archived, total_downloaded, enabled, hidden, defer
         FROM chat_list
     """
     async with db_pool.execute(query) as cursor:
@@ -93,26 +100,23 @@ async def get_chats():
         
         result = []
         for r in rows:
-            # Safely parse topics JSON
             topics_data = None
             if r[8]:
                 try: topics_data = json.loads(r[8])
                 except json.JSONDecodeError: topics_data = r[8] 
-
-
-            raw_name = r[1] or "Unnamed Chat"
-            chat_id = r[0]
-            norm_name = normalize_name(raw_name)
-            exact_folder_name = f"[{chat_id}]_{norm_name}"
-
-            # Safely parse topics_exclude array
+            
             topics_exclude_data = []
             if r[9]:
                 try: topics_exclude_data = [int(x.strip()) for x in r[9].split(',') if x.strip().isdigit()]
                 except Exception: pass
 
+            raw_name = r[1] or "Unknown_Chat"
+            chat_id = r[0]
+            norm_name = normalize_name(raw_name)
+            exact_folder_name = f"[{chat_id}]_{norm_name}"
+
             result.append({
-                "chat_id": r[0], 
+                "chat_id": chat_id, 
                 "name": raw_name, 
                 "folder_name": exact_folder_name,
                 "type": r[2], 
@@ -126,11 +130,37 @@ async def get_chats():
                 "last_archived": r[10],
                 "total_downloaded": r[11] or 0,
                 "enabled": bool(r[12] if r[12] is not None else 1), 
-                "hidden": bool(r[13] if r[13] is not None else 0)
+                "hidden": bool(r[13] if r[13] is not None else 0),
+                "defer": bool(r[14] if r[14] is not None else 0) # <--- NEW FIELD
             })
             
         return result
-        
+
+# --- NEW BULK TOGGLE ENDPOINT ---
+@app.post("/api/chats/toggle")
+async def toggle_chat_flags(req: ToggleRequest):
+    """Dynamically toggles boolean flags for one or multiple chats."""
+    allowed_fields = {"is_batch", "defer", "enabled", "hidden"}
+    if req.field not in allowed_fields:
+        raise HTTPException(status_code=400, detail="Invalid field")
+
+    # Convert Python boolean to SQLite integer
+    val = 1 if req.value else 0
+    
+    # Create the ?,?,? string dynamically based on how many chats were selected
+    placeholders = ",".join("?" for _ in req.chat_ids)
+    query = f"UPDATE chat_list SET {req.field} = ? WHERE chat_id IN ({placeholders})"
+    
+    params = [val] + req.chat_ids
+    
+    try:
+        async with db_pool.execute(query, params) as cursor:
+            pass
+        await db_pool.commit()
+        return {"status": "success", "updated": len(req.chat_ids)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/sync")
 async def trigger_sync(background_tasks: BackgroundTasks):
     """Triggers a database sync of Telegram dialogs."""

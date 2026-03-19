@@ -7,9 +7,11 @@ export default function ChatList({
     activeTasks,
     activeScans,
     onDownload,
+    onRefresh, // <--- ADDED SO WE CAN TRIGGER A DATABASE RELOAD
 }) {
     // --- UI STATE ---
     const [searchQuery, setSearchQuery] = useState("");
+    const [showHidden, setShowHidden] = useState(false); // Kept in state for future Filter Menu
     const [selectedChats, setSelectedChats] = useState(new Set());
 
     const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
@@ -18,7 +20,7 @@ export default function ChatList({
     // --- DATA PIPELINE ---
     const processedChats = useMemo(() => {
         return chats.filter((chat) => {
-            // if (chat.hidden && !showHidden) return false;
+            if (chat.hidden && !showHidden) return false;
 
             if (searchQuery) {
                 const q = searchQuery.toLowerCase();
@@ -33,7 +35,7 @@ export default function ChatList({
             }
             return true;
         });
-    }, [chats, searchQuery]);
+    }, [chats, showHidden, searchQuery]);
 
     const totalHiddenCount = chats.filter((c) => c.hidden).length;
 
@@ -57,6 +59,42 @@ export default function ChatList({
         processedChats.length > 0 &&
         selectedChats.size === processedChats.length;
 
+    // --- THE TOGGLE ENGINE ---
+    const handleToggle = async (chatIds, field, targetValue) => {
+        try {
+            await fetch("http://localhost:39486/api/chats/toggle", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    chat_ids: chatIds,
+                    field,
+                    value: targetValue,
+                }),
+            });
+
+            // If we are hiding selected chats, uncheck them so they don't stay selected while invisible
+            if (field === "hidden" && targetValue === true) {
+                setSelectedChats(new Set());
+            }
+
+            // Tell Home.jsx to refetch the chat list from the database
+            if (onRefresh) onRefresh();
+        } catch (err) {
+            console.error(`Failed to toggle ${field}:`, err);
+        }
+    };
+
+    const handleBulkToggle = (field) => {
+        const selectedArr = Array.from(selectedChats);
+        const selectedData = processedChats.filter((c) =>
+            selectedArr.includes(c.chat_id),
+        );
+
+        // Smart Toggle: If ANY selected item is false, set ALL to true. Else set ALL to false.
+        const targetValue = selectedData.some((c) => !c[field]);
+        handleToggle(selectedArr, field, targetValue);
+    };
+
     // --- RENDER HELPERS ---
     const getChatActiveStatus = (chatId) => {
         const tasks = Object.values(activeTasks).filter(
@@ -78,7 +116,6 @@ export default function ChatList({
             {/* --- TOP CONTROL BAR --- */}
             <div className="chat-controls-bar">
                 <div className="controls-row">
-                    {/* Updated Search Bar with Clear Button */}
                     <div className="search-wrapper">
                         <input
                             type="text"
@@ -127,17 +164,27 @@ export default function ChatList({
                     <div className="btn-group">
                         {selectedChats.size > 0 ? (
                             <>
-                                <button className="control-btn">
+                                <button
+                                    className="control-btn"
+                                    onClick={() => handleBulkToggle("enabled")}>
                                     Disable/Enable
                                 </button>
-                                <button className="control-btn">
+                                <button
+                                    className="control-btn"
+                                    onClick={() => handleBulkToggle("hidden")}>
                                     Hide/Unhide
                                 </button>
-                                <button className="control-btn">
+                                <button
+                                    className="control-btn"
+                                    onClick={() =>
+                                        handleBulkToggle("is_batch")
+                                    }>
                                     Batch Toggle
                                 </button>
-                                <button className="control-btn">
-                                    Schedule Selected
+                                <button
+                                    className="control-btn"
+                                    onClick={() => handleBulkToggle("defer")}>
+                                    Defer/Undefer
                                 </button>
                                 <button className="control-btn primary">
                                     Archive Selected
@@ -185,7 +232,6 @@ export default function ChatList({
                     const isSelected = selectedChats.has(chat.chat_id);
 
                     const isMultiTopic = chat.topics && chat.topics.length > 1;
-                    const isDeferred = Boolean(chat.defer);
 
                     return (
                         <div
@@ -218,7 +264,6 @@ export default function ChatList({
                                     {chat.type} • ID: {chat.chat_id}
                                 </div>
 
-                                {/* Badges moved here as 3rd line */}
                                 <div className="badge-group">
                                     <span
                                         className={`badge ${chat.enabled ? "active" : "danger"}`}>
@@ -231,8 +276,8 @@ export default function ChatList({
                                     </span>
 
                                     <span
-                                        className={`badge ${isDeferred ? "warn" : "active"}`}>
-                                        DEFERRED: {isDeferred ? "ON" : "OFF"}
+                                        className={`badge ${chat.defer ? "warn" : "active"}`}>
+                                        DEFERRED: {chat.defer ? "ON" : "OFF"}
                                     </span>
 
                                     {chat.hidden && (
@@ -305,7 +350,6 @@ export default function ChatList({
 
                             {/* ACTIONS */}
                             <div className="cell">
-                                {/* Full-width Download Button */}
                                 <button
                                     className="main-action-btn"
                                     onClick={() => onDownload(chat.chat_id)}
@@ -313,16 +357,54 @@ export default function ChatList({
                                     {isBusy ? "WORKING..." : "DOWNLOAD"}
                                 </button>
 
-                                {/* 2-Column Action Grid */}
                                 <div className="action-grid">
                                     <button disabled={isBusy || !chat.enabled}>
                                         Scan Only
                                     </button>
                                     <button>Schedule</button>
-                                    <button>Toggle Batch</button>
-                                    <button>Toggle Defer</button>
-                                    <button>Toggle Enable</button>
-                                    <button>Toggle Hide</button>
+
+                                    {/* The New Toggle Buttons */}
+                                    <button
+                                        onClick={() =>
+                                            handleToggle(
+                                                [chat.chat_id],
+                                                "is_batch",
+                                                !chat.is_batch,
+                                            )
+                                        }>
+                                        Toggle Batch
+                                    </button>
+                                    <button
+                                        onClick={() =>
+                                            handleToggle(
+                                                [chat.chat_id],
+                                                "defer",
+                                                !chat.defer,
+                                            )
+                                        }>
+                                        Toggle Defer
+                                    </button>
+                                    <button
+                                        onClick={() =>
+                                            handleToggle(
+                                                [chat.chat_id],
+                                                "enabled",
+                                                !chat.enabled,
+                                            )
+                                        }>
+                                        Toggle Enable
+                                    </button>
+                                    <button
+                                        onClick={() =>
+                                            handleToggle(
+                                                [chat.chat_id],
+                                                "hidden",
+                                                !chat.hidden,
+                                            )
+                                        }>
+                                        Toggle Hide
+                                    </button>
+
                                     <button style={{ color: "#f38ba8" }}>
                                         Purge DB
                                     </button>
