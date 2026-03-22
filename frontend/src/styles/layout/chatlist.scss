@@ -280,3 +280,57 @@
         accent-color: #89b4fa;
     }
 }
+
+/* --- Chat List Grid Overrides --- */
+.chat-name {
+    text-decoration: none; // Migrated from inline
+}
+
+.stat-value {
+    color: #cdd6f4;
+}
+
+.chat-meta {
+    &.meta-sm {
+        margin-top: 0.25rem;
+        font-size: 0.7rem;
+    }
+
+    &.meta-xs {
+        font-size: 0.7rem;
+    }
+}
+
+.scan-status-text {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    // Note: The color logic remains inline on the component
+}
+
+.action-grid {
+    .btn-purge {
+        color: #f38ba8;
+    }
+    .btn-zip {
+        color: #a6e3a1;
+    }
+}
+
+.stats-text {
+    display: flex;
+    flex-direction: column;
+    color: #a6adc8;
+    font-size: 0.85rem;
+    font-weight: bold;
+
+    .highlight {
+        color: #cdd6f4;
+    }
+
+    small {
+        font-size: 0.75rem;
+        font-weight: normal;
+        color: #6c7086;
+        margin-top: 0.15rem;
+    }
+}

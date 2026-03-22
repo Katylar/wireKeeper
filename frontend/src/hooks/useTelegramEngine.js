@@ -7,7 +7,7 @@ export function useTelegramEngine() {
     const [isConnected, setIsConnected] = useState(false);
     const [logs, setLogs] = useState([]);
     const [activeTasks, setActiveTasks] = useState({});
-    const [activeScans, setActiveScans] = useState({}); // NEW: Track scanning phase
+    const [activeScans, setActiveScans] = useState({});
     const [systemStatus, setSystemStatus] = useState(null);
     const wsRef = useRef(null);
 
@@ -32,7 +32,6 @@ export function useTelegramEngine() {
                 ]);
                 break;
 
-            // --- NEW SCAN EVENTS ---
             case "scan_start":
                 setActiveScans((prev) => ({
                     ...prev,
@@ -40,8 +39,6 @@ export function useTelegramEngine() {
                 }));
                 break;
             case "scan_progress":
-                // Note: The backend doesn't send chat_id with scan_progress currently,
-                // so we just rely on scan_start for the UI indicator for now.
                 break;
             case "scan_complete":
             case "chat_complete":
@@ -51,7 +48,6 @@ export function useTelegramEngine() {
                     return next;
                 });
                 break;
-            // -----------------------
 
             case "task_start":
                 setActiveTasks((prev) => ({
@@ -96,7 +92,6 @@ export function useTelegramEngine() {
         }
     };
 
-    // 2. CALLED SECOND: The WebSocket Connection
     useEffect(() => {
         let isMounted = true;
         let reconnectTimeout;
@@ -111,7 +106,6 @@ export function useTelegramEngine() {
             };
 
             ws.onclose = () => {
-                // ONLY attempt to auto-reconnect if the component is actually supposed to be alive
                 if (isMounted) {
                     setIsConnected(false);
                     reconnectTimeout = setTimeout(connect, 3000);
@@ -128,18 +122,15 @@ export function useTelegramEngine() {
 
         connect();
 
-        // The Cleanup Function
         return () => {
             isMounted = false;
             clearTimeout(reconnectTimeout);
             if (ws) {
-                // Remove the onclose listener BEFORE closing so it doesn't trigger a ghost reconnect
                 ws.onclose = null;
                 ws.close();
             }
         };
     }, []);
 
-    // Make sure to export the new activeScans state!
     return { isConnected, systemStatus, logs, activeTasks, activeScans };
 }
