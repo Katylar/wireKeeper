@@ -342,6 +342,23 @@ async def sync_chatlist(client, conn):
     await update_total_downloaded(conn)
     await manager.broadcast({"event": "log", "message": "Database Updated."})
 
+async def sync_single_chat(client, conn, chat_id):
+    entity = await client.get_entity(chat_id)
+    current_name = utils.get_display_name(entity)
+    
+    # Refresh topics if it's a forum
+    topics_json = None
+    if getattr(entity, 'forum', False):
+        result = await client(GetForumTopicsRequest(channel=entity, offset_date=None, offset_id=0, offset_topic=0, limit=100))
+        topics_list = [{"id": t.id, "title": t.title} for t in result.topics]
+        topics_json = json.dumps(topics_list, ensure_ascii=False)
+
+    await conn.execute('''
+        UPDATE chat_list 
+        SET chat_name = ?, topics = ?, date_updated = CURRENT_TIMESTAMP 
+        WHERE chat_id = ?
+    ''', (current_name, topics_json, chat_id))
+    await conn.commit()
 
 async def process_chat_download(client, conn, chat_id, overwrite_mode=False, validate_mode=False, resume_mode=True):
     global SYSTEM_PAUSED
@@ -687,12 +704,15 @@ async def process_batch_download(client, conn, overwrite_mode=False, validate_mo
     await manager.broadcast({"event": "log", "message": f"Batch processing {total_chats} chats."})
     
     for i, row in enumerate(batch_targets, 1):
+        await asyncio.sleep(0.1) 
+        
         chat_id, chat_name = row[0], row[1]
         await manager.broadcast({"event": "log", "message": f"--- Downloading Batch {i}/{total_chats}: {chat_name} ---"})
         try:
             await process_chat_download(client, conn, chat_id, overwrite_mode, validate_mode, resume_mode)
+        except asyncio.CancelledError:
+            raise 
         except Exception as e:
             await manager.broadcast({"event": "error", "message": f"Skipping {chat_name} due to error: {e}"})
-        await asyncio.sleep(2)
         
     await manager.broadcast({"event": "batch_complete"})

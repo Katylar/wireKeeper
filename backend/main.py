@@ -5,15 +5,17 @@ import os
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, BackgroundTasks, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from contextlib import asynccontextmanager
 from telethon import TelegramClient
 from telethon.network import ConnectionTcpAbridged
 
-from database import init_db, get_settings_dict
+from database import init_db, get_settings_dict, update_setting
 from ws_manager import manager
-from downloader import process_chat_download, sync_chatlist, process_batch_download
+from downloader import process_chat_download, sync_chatlist, sync_single_chat, process_batch_download
 from utils import normalize_name
+from orchestrator import queue_manager
+
 
 telegram_client = None
 db_pool = None
@@ -33,35 +35,37 @@ class ToggleRequest(BaseModel):
     field: str
     value: bool
 
+class MultiChatRequest(BaseModel):
+    chat_ids: List[int]
+    overwrite: Optional[bool] = False
+    validate_mode: Optional[bool] = False
+    resume: Optional[bool] = True
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global telegram_client, db_pool
-    
     db_pool = await init_db()
     
-    # Fetch settings dynamically
     settings = await get_settings_dict(db_pool)
+    api_id, api_hash, session_name = settings.get('api_id'), settings.get('api_hash'), settings.get('session_name', 'wirekeeper_session')
     
-    api_id = settings.get('api_id')
-    api_hash = settings.get('api_hash')
-    session_name = settings.get('session_name', 'wirekeeper_session')
-    
-    # Bring-Your-Own-Key logic
     if api_id and api_hash:
         try:
             telegram_client = TelegramClient(session_name, int(api_id), api_hash, connection=ConnectionTcpAbridged)
             await telegram_client.start()
             print("WireKeeper Engine Started Successfully.")
+            
+            # --- Initialize and start Orchestrator ---
+            queue_manager.initialize(telegram_client, db_pool)
+            asyncio.create_task(queue_manager.worker_loop())
+            
         except Exception as e:
             print(f"Failed to start Telegram Client: {e}")
             telegram_client = None
-    else:
-        print("WireKeeper Setup Required: API keys missing from database.")
     
     yield
     
-    if telegram_client:
-        await telegram_client.disconnect()
+    if telegram_client: await telegram_client.disconnect()
     await db_pool.close()
 
 app = FastAPI(lifespan=lifespan)
@@ -164,40 +168,21 @@ async def toggle_chat_flags(req: ToggleRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/sync")
-async def trigger_sync(background_tasks: BackgroundTasks):
-    """Triggers a database sync of Telegram dialogs."""
-    if not telegram_client:
-        raise HTTPException(status_code=400, detail="Telegram client is not connected. Please complete setup.")
-        
-    background_tasks.add_task(sync_chatlist, telegram_client, db_pool)
-    return {"status": "Sync initiated"}
+async def trigger_sync():
+    task_id = queue_manager.add_task("sync-all", {})
+    return {"status": "Queued Sync All", "task_id": task_id}
+
+@app.post("/api/sync/{chat_id}")
+async def trigger_chat_sync(chat_id: int):
+    task_id = queue_manager.add_task("sync-single", {"chat_id": chat_id})
+    return {"status": "Queued Chat Sync", "task_id": task_id}
 
 @app.post("/api/download/{chat_id}")
-async def start_download(
-    chat_id: int, 
-    background_tasks: BackgroundTasks,
-    overwrite: bool = Query(False, description="Overwrite existing files"),
-    validate: bool = Query(False, description="Rescan chat from beginning (min_id=0)"),
-    resume: bool = Query(True, description="Resume incomplete .part files")
-):
-    """Triggers a download job for a specific chat."""
-    if not telegram_client:
-        raise HTTPException(status_code=400, detail="Telegram client is not connected. Please complete setup.")
-
-    background_tasks.add_task(
-        process_chat_download, 
-        telegram_client, 
-        db_pool, 
-        chat_id,
-        overwrite,
-        validate,
-        resume
-    )
-    return {
-        "status": "Download initiated", 
-        "chat_id": chat_id, 
-        "options": {"overwrite": overwrite, "validate": validate, "resume": resume}
-    }
+async def start_download(chat_id: int, overwrite: bool = False, validate: bool = False, resume: bool = True):
+    task_id = queue_manager.add_task("download-chat", {
+        "chat_id": chat_id, "overwrite": overwrite, "validate": validate, "resume": resume
+    })
+    return {"status": "Queued Download", "task_id": task_id}
 
 @app.get("/api/chat/{chat_id}/files")
 async def get_chat_files(chat_id: int):
@@ -254,27 +239,48 @@ async def get_chat_files(chat_id: int):
     return categorized_files
 
 @app.post("/api/batch/start")
-async def start_batch(
-    background_tasks: BackgroundTasks,
-    overwrite: bool = Query(False),
-    validate: bool = Query(False),
-    resume: bool = Query(True),
-    sort: str = Query("default", description="Sort order: default, chat_id_asc, chat_id_desc, messages_asc, messages_desc, date_added_asc, date_added_desc")
-):
-    """Starts the sequential batch download process for flagged chats."""
-    if not telegram_client:
-        raise HTTPException(status_code=400, detail="Telegram client is not connected. Please complete setup.")
+async def start_batch(overwrite: bool = False, validate: bool = False, resume: bool = True, sort: str = "default"):
+    task_id = queue_manager.add_task("batch-download", {
+        "overwrite": overwrite, "validate": validate, "resume": resume, "sort": sort
+    })
+    return {"status": "Queued Batch", "task_id": task_id}
 
-    background_tasks.add_task(
-        process_batch_download,
-        telegram_client,
-        db_pool,
-        overwrite,
-        validate,
-        resume,
-        sort
-    )
-    return {"status": "Batch process initiated", "sort_order": sort}
+@app.get("/api/queue")
+async def get_queue():
+    """Returns the current state of the Orchestrator."""
+    return {
+        "current_task": queue_manager.current_task,
+        "queue": queue_manager.queue
+    }
+
+@app.delete("/api/queue/{task_id}")
+async def kill_task(task_id: str):
+    """Kills an active task or removes it from the queue."""
+    result = await queue_manager.kill_task(task_id)
+    return result
+
+@app.post("/api/sync/multiple")
+async def sync_multiple(req: MultiChatRequest):
+    """Accepts an ordered array of chat IDs and queues them for syncing individually."""
+    task_ids = []
+    for cid in req.chat_ids:
+        tid = queue_manager.add_task("sync-single", {"chat_id": cid})
+        task_ids.append(tid)
+    return {"status": "Queued Multiple Syncs", "task_ids": task_ids}
+
+@app.post("/api/download/multiple")
+async def download_multiple(req: MultiChatRequest):
+    """Accepts an ordered array of chat IDs and queues them for downloading sequentially."""
+    task_ids = []
+    for cid in req.chat_ids:
+        tid = queue_manager.add_task("download-chat", {
+            "chat_id": cid, 
+            "overwrite": req.overwrite, 
+            "validate": req.validate_mode, 
+            "resume": req.resume
+        })
+        task_ids.append(tid)
+    return {"status": "Queued Multiple Downloads", "task_ids": task_ids}
 
 @app.get("/api/status")
 async def system_status():
@@ -295,19 +301,11 @@ async def get_current_settings():
 @app.post("/api/settings")
 async def save_settings(settings: SettingsUpdate):
     """Saves settings to the database."""
-    # Convert the Pydantic model to a dict
     settings_dict = settings.model_dump()
     
-    # Save each key-value pair to the database
     for key, value in settings_dict.items():
-        query = """
-            INSERT INTO settings (setting_key, setting_value) 
-            VALUES (?, ?) 
-            ON CONFLICT(setting_key) DO UPDATE SET setting_value = excluded.setting_value
-        """
-        await db_pool.execute(query, (key, str(value)))
+        await update_setting(db_pool, key, value) 
     
-    await db_pool.commit()
     return {"status": "Settings saved successfully. Restart required for API keys."}
 
 if __name__ == "__main__":

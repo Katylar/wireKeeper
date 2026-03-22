@@ -181,15 +181,6 @@ const ChatRow = React.memo(
                         <button className="btn-purge">Archive</button>
                         <button className="btn-zip">Render</button>
                     </div>
-
-                    <div className="action-checkboxes">
-                        <label>
-                            <input type="checkbox" /> Validate
-                        </label>
-                        <label>
-                            <input type="checkbox" /> Overwrite
-                        </label>
-                    </div>
                 </div>
             </div>
         );
