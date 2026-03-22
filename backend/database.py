@@ -32,7 +32,7 @@ async def init_db():
             topics_exclude TEXT,
             redownload INTEGER DEFAULT 0,
             date_added DATETIME,
-            date_updated DATETIME,      
+            date_updated DATETIME,
             old_name TEXT,
             last_message_id INTEGER DEFAULT 0,
             last_download_scan DATETIME,
@@ -41,7 +41,8 @@ async def init_db():
             enabled INTEGER DEFAULT 1,
             hidden INTEGER DEFAULT 0,
             total_size INTEGER DEFAULT 0,
-            last_download DATETIME
+            last_download DATETIME,
+            chat_status INTEGER DEFAULT 1
         )
     ''')
 
@@ -59,8 +60,8 @@ async def init_db():
                 ('api_id', ''),
                 ('api_hash', ''),
                 ('session_name', 'wirekeeper_session'),
-                ('max_concurrent_heavy', '3'),
-                ('max_concurrent_light', '2'),
+                ('max_concurrent_heavy', '4'),
+                ('max_concurrent_light', '6'),
                 ('speed_threshold_kb', '100'),
                 ('max_retries', '3'),
                 ('download_path', 'downloads'),
@@ -124,11 +125,6 @@ async def db_get_topic_exclusions(conn, chat_id):
         return set()
 
 async def update_total_downloaded(conn, chat_id=None):
-    """
-    Counts all 'success' status downloads and updates the chat_list table.
-    If chat_id is provided, it only updates that specific chat.
-    If chat_id is None, it updates all chats (for global sync).
-    """
     update_query = """
         UPDATE chat_list 
         SET total_downloaded = (
@@ -147,12 +143,12 @@ async def update_total_downloaded(conn, chat_id=None):
     await conn.commit()
 
 async def get_settings_dict(conn):
-    """Returns all settings as a dictionary."""
+    
     async with conn.execute("SELECT key, value FROM settings") as cursor:
         rows = await cursor.fetchall()
         return {r[0]: r[1] for r in rows}
 
 async def update_setting(conn, key, value):
-    """Updates or inserts a single setting."""
+    
     await conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, str(value)))
     await conn.commit()

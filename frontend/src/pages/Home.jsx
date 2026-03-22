@@ -37,14 +37,16 @@ export default function Home() {
         });
     };
 
-    // const handleGlobalSync = async () => {
-    //     await fetch("http://localhost:39486/api/sync", { method: "POST" });
-    // };
+    const handleGlobalSync = async () => {
+        await fetch("http://localhost:39486/api/sync", { method: "POST" });
+    };
 
     if (isLoading) return <p>Loading database...</p>;
 
     return (
         <div>
+            <button onClick={handleGlobalSync}>Sync All</button>
+
             <ChatList
                 chats={chats}
                 activeTasks={activeTasks}

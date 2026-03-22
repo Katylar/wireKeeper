@@ -90,7 +90,7 @@ async def get_chats():
         SELECT 
             chat_id, chat_name, chat_type, total_messages, is_batch,
             old_name, last_download_scan, last_message_id, topics, topics_exclude, 
-            last_archived, total_downloaded, enabled, hidden, defer, total_size, last_download, date_updated
+            last_archived, total_downloaded, enabled, hidden, defer, total_size, last_download, date_updated, chat_status
         FROM chat_list
     """
     async with db_pool.execute(query) as cursor:
@@ -132,7 +132,8 @@ async def get_chats():
                 "defer": bool(r[14] if r[14] is not None else 0),
                 "total_size": r[15] or 0,
                 "last_download": r[16],
-                "date_updated": r[17]
+                "date_updated": r[17],
+                "chat_status": bool(r[18] if r[18] is not None else 1)
             })
             
         return result
