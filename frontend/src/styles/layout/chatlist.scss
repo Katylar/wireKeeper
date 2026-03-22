@@ -23,11 +23,18 @@
             justify-content: space-between;
             align-items: center;
             gap: 1rem;
+
+            .controls-row-left {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+            }
         }
 
         .search-wrapper {
             position: relative;
             flex-grow: 1;
+            width: 30dvw;
             max-width: 400px;
 
             .search-box {
@@ -71,9 +78,11 @@
         }
 
         .stats-text {
+            text-align: right;
             color: #a6adc8;
             font-size: 0.85rem;
             font-weight: bold;
+
             .highlight {
                 color: #cdd6f4;
             }

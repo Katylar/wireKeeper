@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useOutletContext } from "react-router-dom";
 import "../styles/settings.scss";
 
 export default function Settings() {
@@ -13,6 +14,7 @@ export default function Settings() {
     });
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState(null);
+    const engineState = useOutletContext();
 
     useEffect(() => {
         // Load current settings when the page mounts
@@ -114,6 +116,21 @@ export default function Settings() {
                     </span>
                 </div>
 
+                <div className="form-group">
+                    <label>Ignored File Extensions</label>
+                    <input
+                        type="text"
+                        name="ignored_extensions"
+                        value={formData.ignored_extensions || ""}
+                        onChange={handleChange}
+                        required
+                    />
+                    <span className="help-text">
+                        Comma-separated (e.g., .tmp,.log). WireKeeper will
+                        ignore files with these extensions.
+                    </span>
+                </div>
+
                 <div style={{ display: "flex", gap: "1rem" }}>
                     <div className="form-group" style={{ flex: 1 }}>
                         <label>Max Heavy Workers (Video/Zip)</label>
@@ -138,11 +155,45 @@ export default function Settings() {
                         />
                     </div>
                 </div>
+                <div style={{ display: "flex", gap: "1rem" }}>
+                    <div className="form-group" style={{ flex: 1 }}>
+                        <label>Max Retries</label>
+                        <input
+                            type="number"
+                            name="max_retries"
+                            value={formData.max_retries || ""}
+                            onChange={handleChange}
+                            min="1"
+                            max="10"
+                        />
+                    </div>
+                    <div className="form-group" style={{ flex: 1 }}>
+                        <label>
+                            Gain Threshold for AutoSpawned Download Workers
+                        </label>
+                        <input
+                            type="number"
+                            name="speed_threshold_kb"
+                            value={formData.speed_threshold_kb || ""}
+                            onChange={handleChange}
+                            min="1"
+                            max="10"
+                        />
+                    </div>
+                </div>
 
                 <button type="submit" className="save-btn" disabled={isSaving}>
                     {isSaving ? "Saving..." : "Save Configuration"}
                 </button>
             </form>
+
+            <div
+                style={{
+                    color: engineState.isConnected ? "#a6e3a1" : "#f38ba8",
+                }}>
+                UI ↔ Engine:{" "}
+                {engineState.isConnected ? "● Connected" : "○ Offline"}
+            </div>
         </div>
     );
 }

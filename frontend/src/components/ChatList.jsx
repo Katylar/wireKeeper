@@ -225,7 +225,7 @@ export default function ChatList({
             selectedArr.includes(c.chat_id),
         );
 
-        // Smart Toggle: If ANY selected item is false, set ALL to true. Else set ALL to false.
+        // If ANY selected item is false, set ALL to true. Else set ALL to false.
         const targetValue = selectedData.some((c) => !c[field]);
         handleToggle(selectedArr, field, targetValue);
     };
@@ -245,6 +245,18 @@ export default function ChatList({
             queueInfo: tasks[0].queue_info || "Downloading...",
         };
     };
+
+    const selectedData = processedChats.filter((c) =>
+        selectedChats.has(c.chat_id),
+    );
+    const isAllEnabled =
+        selectedData.length > 0 && selectedData.every((chat) => chat.enabled);
+    const isAllHidden =
+        selectedData.length > 0 && selectedData.every((chat) => chat.hidden);
+    const isAllBatch =
+        selectedData.length > 0 && selectedData.every((chat) => chat.is_batch);
+    const isAllDeferred =
+        selectedData.length > 0 && selectedData.every((chat) => chat.defer);
 
     // --- MODAL CONTENTS ---
     const renderSortModal = () => (
@@ -297,7 +309,7 @@ export default function ChatList({
                             })
                         }
                     />
-                    Vault Volume (Total Saved Files)
+                    Vault Volume (Total Downloaded Files)
                 </label>
                 <label className="modal-input-label">
                     <input
@@ -351,20 +363,6 @@ export default function ChatList({
                     <input
                         type="radio"
                         name="sortKey"
-                        checked={tempSortConfig.key === "last_download_scan"}
-                        onChange={() =>
-                            setTempSortConfig({
-                                ...tempSortConfig,
-                                key: "last_download_scan",
-                            })
-                        }
-                    />
-                    Last Scanned (Messages Checked)
-                </label>
-                <label className="modal-input-label">
-                    <input
-                        type="radio"
-                        name="sortKey"
                         checked={tempSortConfig.key === "last_download"}
                         onChange={() =>
                             setTempSortConfig({
@@ -373,7 +371,7 @@ export default function ChatList({
                             })
                         }
                     />
-                    Last Saved (File Written to Disk)
+                    Last Downloaded (File Written to Disk)
                 </label>
             </div>
 
@@ -670,24 +668,37 @@ export default function ChatList({
             {/* --- TOP CONTROL BAR --- */}
             <div className="chat-controls-bar">
                 <div className="controls-row">
-                    <div className="search-wrapper">
-                        <input
-                            type="text"
-                            className="search-box"
-                            placeholder="Search by name, folder, old name, or ID..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                        {searchQuery && (
+                    <div className="controls-row-left">
+                        <div className="search-wrapper">
+                            <input
+                                type="text"
+                                className="search-box"
+                                placeholder="Search by name, folder, old name, or ID..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                            {searchQuery && (
+                                <button
+                                    className="clear-search-btn"
+                                    onClick={() => setSearchQuery("")}
+                                    title="Clear search">
+                                    ✕
+                                </button>
+                            )}
+                        </div>
+                        <div className="btn-group">
                             <button
-                                className="clear-search-btn"
-                                onClick={() => setSearchQuery("")}
-                                title="Clear search">
-                                ✕
+                                className="control-btn"
+                                onClick={() => openModal("sort")}>
+                                Sort
                             </button>
-                        )}
+                            <button
+                                className="control-btn"
+                                onClick={() => openModal("filter")}>
+                                Filter
+                            </button>
+                        </div>
                     </div>
-
                     <div className="stats-text">
                         <span>
                             Showing{" "}
@@ -708,58 +719,75 @@ export default function ChatList({
                 <div className="controls-row">
                     <div className="btn-group">
                         <button
-                            className="control-btn"
-                            onClick={() => openModal("sort")}>
-                            Sort ▾
+                            className="control-btn primary"
+                            title="Starts downloading all enabled chats that are part of the Batch">
+                            Download Batch
                         </button>
                         <button
-                            className="control-btn"
-                            onClick={() => openModal("filter")}>
-                            Filter ▾
+                            className="control-btn primary"
+                            title="Syncs with your Telegram account, grabbing all newly added chats and refreshing the metadata of existing">
+                            Sync to Telegram
                         </button>
                     </div>
-
                     <div className="btn-group">
                         {selectedChats.size > 0 ? (
                             <>
                                 <button
                                     className="control-btn"
                                     onClick={() => handleBulkToggle("enabled")}>
-                                    Disable/Enable
+                                    {isAllEnabled
+                                        ? "Disable Selected"
+                                        : "Enable Selected"}
                                 </button>
                                 <button
                                     className="control-btn"
                                     onClick={() => handleBulkToggle("hidden")}>
-                                    Hide/Unhide
+                                    {isAllHidden
+                                        ? "Unhide Selected"
+                                        : "Hide Selected"}
                                 </button>
                                 <button
                                     className="control-btn"
                                     onClick={() =>
                                         handleBulkToggle("is_batch")
                                     }>
-                                    Batch Toggle
+                                    {isAllBatch
+                                        ? "Remove Selected from Batch"
+                                        : "Add Selected to Batch"}
                                 </button>
                                 <button
                                     className="control-btn"
                                     onClick={() => handleBulkToggle("defer")}>
-                                    Defer/Undefer
+                                    {isAllDeferred
+                                        ? "Remove Selected from Deferred List"
+                                        : "Add Selected to Deferred List"}
                                 </button>
-                                <button className="control-btn primary">
-                                    Archive Selected
+                                <button className="control-btn accent">
+                                    Download Selected ({selectedChats.size})
                                 </button>
                                 <button className="control-btn accent">
                                     Sync Selected ({selectedChats.size})
                                 </button>
+                                <button className="control-btn primary">
+                                    Archive Selected ({selectedChats.size})
+                                </button>
                             </>
                         ) : (
                             <>
-                                <button className="control-btn primary">
-                                    Archive All Chats
+                                <button
+                                    className="control-btn primary"
+                                    title="Starts download for all enabled chats in the database">
+                                    Download All
                                 </button>
                                 <button
-                                    className="control-btn accent"
-                                    title="Syncs all Enabled chats in the database">
-                                    Sync All Enabled
+                                    className="control-btn primary"
+                                    title="Syncs all enabled chats in the database for changes and updates metadata and message counts">
+                                    Sync All
+                                </button>
+                                <button
+                                    className="control-btn primary"
+                                    title="Adds all enabled chats to the final vault and for permanent storage.">
+                                    Archive All
                                 </button>
                             </>
                         )}
@@ -823,20 +851,24 @@ export default function ChatList({
 
                                 <div className="badge-group">
                                     <span
-                                        className={`badge ${chat.enabled ? "active" : "danger"}`}>
-                                        {chat.enabled ? "ENABLED" : "DISABLED"}
-                                    </span>
-
-                                    <span
                                         className={`badge ${chat.is_batch ? "active" : ""}`}>
-                                        BATCH: {chat.is_batch ? "ON" : "OFF"}
+                                        BATCH:{" "}
+                                        {chat.is_batch
+                                            ? "INCLUDED"
+                                            : "EXCLUDED"}
                                     </span>
 
                                     <span
                                         className={`badge ${chat.defer ? "warn" : "active"}`}>
-                                        DEFERRED: {chat.defer ? "ON" : "OFF"}
+                                        DEFERRED LIST:{" "}
+                                        {chat.defer ? "INCLUDED" : "EXCLUDED"}
                                     </span>
 
+                                    {!chat.enabled && (
+                                        <span className="badge warn">
+                                            DISABLED
+                                        </span>
+                                    )}
                                     {chat.hidden && (
                                         <span className="badge warn">
                                             HIDDEN
@@ -872,6 +904,12 @@ export default function ChatList({
                                     </span>
                                 </div>
                                 <div className="chat-meta">
+                                    Latest Message:{" "}
+                                    <span className="stat-value">
+                                        {chat.last_message}
+                                    </span>
+                                </div>
+                                <div className="chat-meta">
                                     Vault Volume:{" "}
                                     <span className="stat-value">
                                         {chat.total_downloaded?.toLocaleString() ||
@@ -899,15 +937,7 @@ export default function ChatList({
                                         : "Never"}
                                 </div>
                                 <div className="chat-meta">
-                                    Last Scanned:{" "}
-                                    {chat.last_scan
-                                        ? new Date(
-                                              chat.last_scan,
-                                          ).toLocaleDateString()
-                                        : "Never"}
-                                </div>
-                                <div className="chat-meta">
-                                    Last Saved:{" "}
+                                    Last Downloaded:{" "}
                                     {chat.last_download
                                         ? new Date(
                                               chat.last_download,
@@ -935,11 +965,12 @@ export default function ChatList({
 
                                 <div className="action-grid">
                                     <button disabled={isBusy || !chat.enabled}>
-                                        Scan Only
+                                        Sync
                                     </button>
                                     <button>Schedule</button>
 
                                     {/* The New Toggle Buttons */}
+
                                     <button
                                         onClick={() =>
                                             handleToggle(
@@ -948,7 +979,9 @@ export default function ChatList({
                                                 !chat.is_batch,
                                             )
                                         }>
-                                        Toggle Batch
+                                        {chat.isBatch
+                                            ? "Remove from Batch"
+                                            : "Add to Batch"}
                                     </button>
                                     <button
                                         onClick={() =>
@@ -958,8 +991,11 @@ export default function ChatList({
                                                 !chat.defer,
                                             )
                                         }>
-                                        Toggle Defer
+                                        {chat.defer
+                                            ? "Remove from Deferred List"
+                                            : "Add to Defer List"}
                                     </button>
+
                                     <button
                                         onClick={() =>
                                             handleToggle(
@@ -968,7 +1004,7 @@ export default function ChatList({
                                                 !chat.enabled,
                                             )
                                         }>
-                                        Toggle Enable
+                                        {chat.enabled ? "Disable" : "Enable"}
                                     </button>
                                     <button
                                         onClick={() =>
@@ -978,15 +1014,13 @@ export default function ChatList({
                                                 !chat.hidden,
                                             )
                                         }>
-                                        Toggle Hide
+                                        {chat.hidden ? "Unhide" : "Hide"}
                                     </button>
 
                                     <button className="btn-purge">
-                                        Purge DB
+                                        Archive
                                     </button>
-                                    <button className="btn-zip">
-                                        Zip Archive
-                                    </button>
+                                    <button className="btn-zip">Render</button>
                                 </div>
 
                                 <div className="action-checkboxes">

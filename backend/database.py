@@ -52,7 +52,6 @@ async def init_db():
         )
     ''')
     
-    # Seed default settings if the table is empty
     async with conn.execute("SELECT COUNT(*) FROM settings") as cursor:
         count = (await cursor.fetchone())[0]
         if count == 0:

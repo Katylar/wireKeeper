@@ -220,7 +220,8 @@ async def get_chat_files(chat_id: int):
         "videos": [],
         "images": [],
         "archives": [],
-        "misc": []
+        "misc": [],
+        "audio": []
     }
     
     for row in rows:
@@ -235,6 +236,7 @@ async def get_chat_files(chat_id: int):
         if "/videos/" in normalized_path: category = "videos"
         elif "/images/" in normalized_path: category = "images"
         elif "/archives/" in normalized_path: category = "archives"
+        elif "/audio/" in normalized_path: category = "audio"
         
         file_data = {
             "message_id": msg_id,

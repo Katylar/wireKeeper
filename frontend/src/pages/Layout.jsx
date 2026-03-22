@@ -69,16 +69,6 @@ export default function Layout() {
                     }}>
                     <div
                         style={{
-                            color: engineState.isConnected
-                                ? "#a6e3a1"
-                                : "#f38ba8",
-                        }}>
-                        UI ↔ Engine:{" "}
-                        {engineState.isConnected ? "● Connected" : "○ Offline"}
-                    </div>
-
-                    <div
-                        style={{
                             color: engineState.systemStatus?.client_connected
                                 ? "#89b4fa"
                                 : "#f9e2af",
@@ -90,7 +80,6 @@ export default function Layout() {
                     </div>
                 </div>
                 <div className="controls">
-                    <button>Sync Chatlist</button>
                     <button>Restart</button>
                     <button>Shutdown</button>
                 </div>
@@ -102,7 +91,14 @@ export default function Layout() {
 
             <footer>
                 <p>Copyright © 2026 Katylar. All rights reserved.</p>
-                <button>Donate</button>
+                <button>
+                    <a
+                        href="https://ko-fi.com/justin3594"
+                        target="_blank"
+                        rel="noopener noreferrer">
+                        Donate
+                    </a>
+                </button>
             </footer>
         </div>
     );

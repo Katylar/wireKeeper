@@ -25,11 +25,12 @@ def get_file_category(message, filename):
         return None
     if isinstance(message.media, MessageMediaPhoto): return 'images'
     if isinstance(message.media, MessageMediaDocument):
-        if message.voice or message.audio: return 'misc' 
+        if message.voice or message.audio: return 'audio' 
         if message.video or message.gif: return 'videos'
         mime_type = getattr(message.file, 'mime_type', '').lower()
         if mime_type.startswith('image/'): return 'images'
         if mime_type.startswith('video/'): return 'videos'
+        if mime_type.startswith('audio/'): return 'audio'
         ext = os.path.splitext(filename)[1].lower() if filename else ""
         if ext in ARCHIVE_EXTS: return 'archives'
         return 'misc'

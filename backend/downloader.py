@@ -283,13 +283,13 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
 
     norm_name = normalize_name(chat_title)
     base_folder = os.path.join(downloads_dir, f"[{chat_id}]_{norm_name}")
-    folders = {k: os.path.join(base_folder, k) for k in ['images', 'videos', 'archives', 'misc']}
+    folders = {k: os.path.join(base_folder, k) for k in ['images', 'videos', 'archives', 'misc', 'audio']}
     for p in folders.values(): os.makedirs(p, exist_ok=True)
 
     alt_folders = None
     if alt_downloads_dir and os.path.exists(alt_downloads_dir):
         alt_base = os.path.join(alt_downloads_dir, f"[{chat_id}]_{norm_name}")
-        alt_folders = {k: os.path.join(alt_base, k) for k in ['images', 'videos', 'archives', 'misc']}
+        alt_folders = {k: os.path.join(alt_base, k) for k in ['images', 'videos', 'archives', 'misc', 'audio']}
 
     excluded_topics = await db_get_topic_exclusions(conn, chat_id)
     
@@ -463,12 +463,12 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
         queue_heavy = asyncio.Queue()
         queue_light = asyncio.Queue()
         
-        total_heavy = sum(1 for x in temp_download_list if x['category'] in ['videos', 'archives'])
+        total_heavy = sum(1 for x in temp_download_list if x['category'] in ['videos', 'archives', 'audio'])
         total_light = len(temp_download_list) - total_heavy
         
         c_heavy, c_light = 0, 0
         for item in temp_download_list:
-            if item['category'] in ['videos', 'archives']:
+            if item['category'] in ['videos', 'archives', 'audio']:
                 c_heavy += 1
                 queue_heavy.put_nowait(item['data'] + (('heavy', c_heavy, total_heavy, total_downloads_needed),))
             else:
@@ -505,6 +505,18 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
         
     await conn.execute("UPDATE chat_list SET total_size = ? WHERE chat_id = ?", (total_bytes, chat_id))
     await conn.commit()
+
+    for p in folders.values():
+        try: os.rmdir(p)
+        except OSError: pass
+        
+    if alt_folders:
+        for p in alt_folders.values():
+            try: os.rmdir(p)
+            except OSError: pass
+
+    try: os.rmdir(base_folder)
+    except OSError: pass
 
     await manager.broadcast({
         "event": "chat_complete", 
