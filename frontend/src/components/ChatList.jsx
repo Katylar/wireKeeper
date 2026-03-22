@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
+import Modal from "./Modal";
 import "../styles/layout/chatlist.scss";
 
 export default function ChatList({
@@ -7,7 +8,8 @@ export default function ChatList({
     activeTasks,
     activeScans,
     onDownload,
-    onRefresh, // <--- ADDED SO WE CAN TRIGGER A DATABASE RELOAD
+    onRefresh,
+    setChats,
 }) {
     // --- UI STATE ---
     const [searchQuery, setSearchQuery] = useState("");
@@ -61,6 +63,21 @@ export default function ChatList({
 
     // --- THE TOGGLE ENGINE ---
     const handleToggle = async (chatIds, field, targetValue) => {
+        if (setChats) {
+            setChats((prevChats) =>
+                prevChats.map((chat) => {
+                    if (chatIds.includes(chat.chat_id)) {
+                        return { ...chat, [field]: targetValue };
+                    }
+                    return chat;
+                }),
+            );
+        }
+
+        if (field === "hidden" && targetValue === true) {
+            setSelectedChats(new Set());
+        }
+
         try {
             await fetch("http://localhost:39486/api/chats/toggle", {
                 method: "POST",
@@ -72,15 +89,15 @@ export default function ChatList({
                 }),
             });
 
-            // If we are hiding selected chats, uncheck them so they don't stay selected while invisible
             if (field === "hidden" && targetValue === true) {
                 setSelectedChats(new Set());
             }
 
-            // Tell Home.jsx to refetch the chat list from the database
             if (onRefresh) onRefresh();
         } catch (err) {
             console.error(`Failed to toggle ${field}:`, err);
+
+            if (onRefresh) onRefresh();
         }
     };
 

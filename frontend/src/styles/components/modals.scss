@@ -1,0 +1,124 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(17, 17, 27, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 1rem;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-container {
+    background: #1e1e2e;
+    border-radius: 8px;
+    border: 1px solid #313244;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    max-width: 450px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: slideUp 0.2s ease-out;
+
+    .modal-header {
+        background: #181825;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #313244;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        h3 {
+            margin: 0;
+            color: #cdd6f4;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: #a6adc8;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+
+            &:hover {
+                color: #f38ba8; // Red on hover
+                background: rgba(243, 139, 168, 0.1);
+            }
+        }
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+        color: #cdd6f4;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+
+    .modal-footer {
+        padding: 1rem 1.5rem;
+        background: #181825;
+        border-top: 1px solid #313244;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+
+        button {
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s;
+
+            &.btn-cancel {
+                background: #313244;
+                color: #cdd6f4;
+                &:hover {
+                    background: #45475a;
+                }
+            }
+
+            &.btn-apply {
+                background: #89b4fa;
+                color: #11111b;
+                &:hover {
+                    background: #b4befe;
+                }
+            }
+        }
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
