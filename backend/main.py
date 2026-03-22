@@ -86,13 +86,11 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @app.get("/api/chats")
 async def get_chats():
-    """Returns the comprehensive list of configured chats from the database."""
-    # FIX: We added 'defer' to the end of this SELECT statement
     query = """
         SELECT 
             chat_id, chat_name, chat_type, total_messages, is_batch,
             old_name, last_download_scan, last_message_id, topics, topics_exclude, 
-            last_archived, total_downloaded, enabled, hidden, defer
+            last_archived, total_downloaded, enabled, hidden, defer, total_size, last_download, date_updated
         FROM chat_list
     """
     async with db_pool.execute(query) as cursor:
@@ -131,7 +129,10 @@ async def get_chats():
                 "total_downloaded": r[11] or 0,
                 "enabled": bool(r[12] if r[12] is not None else 1), 
                 "hidden": bool(r[13] if r[13] is not None else 0),
-                "defer": bool(r[14] if r[14] is not None else 0) # <--- NEW FIELD
+                "defer": bool(r[14] if r[14] is not None else 0),
+                "total_size": r[15] or 0,
+                "last_download": r[16],
+                "date_updated": r[17]
             })
             
         return result

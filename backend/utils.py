@@ -93,3 +93,17 @@ def get_message_topic_id(message):
     if message.reply_to.forum_topic:
         return getattr(message.reply_to, 'reply_to_top_id', message.reply_to.reply_to_msg_id)
     return None
+
+def get_dir_size(path):
+    total = 0
+    if not os.path.exists(path): 
+        return 0
+    try:
+        for entry in os.scandir(path):
+            if entry.is_file(follow_symlinks=False):
+                total += entry.stat(follow_symlinks=False).st_size
+            elif entry.is_dir(follow_symlinks=False):
+                total += get_dir_size(entry.path)
+    except Exception:
+        pass
+    return total

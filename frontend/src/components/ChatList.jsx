@@ -16,6 +16,8 @@ export default function ChatList({
     const [selectedChats, setSelectedChats] = useState(new Set());
     const [activeModal, setActiveModal] = useState(null); // 'sort', 'filter', or null
 
+    console.log("Rendering ChatList with chats:", chats);
+
     // --- SORTING & FILTERING DEFAULTS ---
     const defaultSort = { key: "chat_id", direction: "asc" };
     const defaultFilter = {
@@ -117,15 +119,6 @@ export default function ChatList({
         result.sort((a, b) => {
             let valA = a[sortConfig.key];
             let valB = b[sortConfig.key];
-
-            // Handle placeholders for future wiring
-            if (
-                sortConfig.key === "total_size" ||
-                sortConfig.key === "last_download"
-            ) {
-                valA = 0;
-                valB = 0;
-            }
 
             // Null safety
             if (valA === null || valA === undefined)
@@ -872,31 +865,60 @@ export default function ChatList({
                             {/* STATISTICS */}
                             <div className="cell">
                                 <div className="chat-meta">
-                                    Msgs:{" "}
+                                    Total Messages:{" "}
                                     <span className="stat-value">
                                         {chat.total_messages?.toLocaleString() ||
                                             0}
                                     </span>
                                 </div>
                                 <div className="chat-meta">
-                                    Saved:{" "}
+                                    Vault Volume:{" "}
                                     <span className="stat-value">
                                         {chat.total_downloaded?.toLocaleString() ||
                                             0}
                                     </span>
                                 </div>
                                 <div className="chat-meta">
-                                    Size:{" "}
-                                    <span className="stat-value">0 GB</span>
+                                    Vault Size:{" "}
+                                    <span className="stat-value">
+                                        {chat.total_size
+                                            ? (
+                                                  chat.total_size /
+                                                  (1024 * 1024 * 1024)
+                                              ).toFixed(2)
+                                            : "0.00"}{" "}
+                                        GB
+                                    </span>
                                 </div>
-                                <div className="chat-meta meta-sm">
-                                    Last Msg: {chat.last_message_id || 0}
-                                </div>
-                                <div className="chat-meta meta-xs">
-                                    Updated:{" "}
-                                    {chat.last_download_scan
+                                <div className="chat-meta">
+                                    Last Synced:{" "}
+                                    {chat.date_updated
                                         ? new Date(
-                                              chat.last_download_scan,
+                                              chat.date_updated,
+                                          ).toLocaleDateString()
+                                        : "Never"}
+                                </div>
+                                <div className="chat-meta">
+                                    Last Scanned:{" "}
+                                    {chat.last_scan
+                                        ? new Date(
+                                              chat.last_scan,
+                                          ).toLocaleDateString()
+                                        : "Never"}
+                                </div>
+                                <div className="chat-meta">
+                                    Last Saved:{" "}
+                                    {chat.last_download
+                                        ? new Date(
+                                              chat.last_download,
+                                          ).toLocaleDateString()
+                                        : "Never"}
+                                </div>
+                                <div className="chat-meta">
+                                    Last Archived:{" "}
+                                    {chat.last_archived
+                                        ? new Date(
+                                              chat.last_archived,
                                           ).toLocaleDateString()
                                         : "Never"}
                                 </div>

@@ -8,7 +8,7 @@ from telethon.tl.types import Chat, Channel, MessageMediaGeo, MessageMediaContac
 from telethon.tl.functions.channels import GetForumTopicsRequest
 from config import SAFE_RESUME_REWIND
 from database import get_last_message_id, db_get_topic_exclusions, update_cursor, db_check_existing, db_update_status, db_get_incomplete, update_total_downloaded, get_settings_dict
-from utils import normalize_name, generate_filename, get_file_category, get_msg_file_size, check_file_size_integrity, get_message_topic_id
+from utils import normalize_name, generate_filename, get_file_category, get_msg_file_size, check_file_size_integrity, get_message_topic_id, get_dir_size
 from ws_manager import manager
 
 SYSTEM_PAUSED = False 
@@ -160,6 +160,10 @@ async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mod
             
             await db_update_status(conn, unique_id, chat_id, message_id, 'success', final_path, original_name, current_filename, expected_size, topic_id)
             stats['successful_downloads'] += 1
+
+            await conn.execute("UPDATE chat_list SET last_download = CURRENT_TIMESTAMP WHERE chat_id = ?", (chat_id,))
+            await conn.commit()
+
             await manager.broadcast({"event": "task_complete", "file_id": unique_id, "status": "success"})
             
             if SYSTEM_PAUSED: 
@@ -494,6 +498,13 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
             all_tasks = active_heavy + active_light
             for task, _ in all_tasks: 
                 if not task.done(): task.cancel()
+
+    total_bytes = await asyncio.to_thread(get_dir_size, base_folder)
+    if alt_folders:
+        total_bytes += await asyncio.to_thread(get_dir_size, alt_base)
+        
+    await conn.execute("UPDATE chat_list SET total_size = ? WHERE chat_id = ?", (total_bytes, chat_id))
+    await conn.commit()
 
     await manager.broadcast({
         "event": "chat_complete", 

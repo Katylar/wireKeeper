@@ -39,7 +39,9 @@ async def init_db():
             last_archived DATETIME,
             total_downloaded INTEGER DEFAULT 0,
             enabled INTEGER DEFAULT 1,
-            hidden INTEGER DEFAULT 0
+            hidden INTEGER DEFAULT 0,
+            total_size INTEGER DEFAULT 0,
+            last_download DATETIME
         )
     ''')
 
