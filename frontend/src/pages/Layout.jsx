@@ -1,9 +1,9 @@
 import React from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { useTelegramEngine } from "../hooks/useTelegramEngine";
+import { useEngine } from "../context/WebSocketProvider";
 
 export default function Layout() {
-    const engineState = useTelegramEngine();
+    const engineState = useEngine();
 
     return (
         <div className="app-layout">
@@ -45,11 +45,11 @@ export default function Layout() {
                         Chatlist
                     </NavLink>
                     <NavLink
-                        to="/logs"
+                        to="/activity"
                         className={({ isActive }) =>
                             isActive ? "active" : ""
                         }>
-                        Logs
+                        Activity
                     </NavLink>
                     <NavLink
                         to="/settings"
@@ -86,7 +86,7 @@ export default function Layout() {
             </nav>
 
             <main className="page-content">
-                <Outlet context={engineState} />
+                <Outlet />
             </main>
 
             <footer>

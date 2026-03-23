@@ -2,7 +2,8 @@ import asyncio
 import uuid
 import time
 from ws_manager import manager
-from downloader import process_chat_download, sync_chatlist, sync_single_chat, process_batch_download
+# from downloader import process_chat_download, sync_chatlist, sync_single_chat, process_batch_download
+from tester import process_chat_download, sync_chatlist, sync_single_chat
 
 class Orchestrator:
     def __init__(self):
@@ -74,6 +75,50 @@ class Orchestrator:
                 
         return {"status": "not_found"}
 
+    async def kill_batch(self, batch_id: str):
+        """Removes all tasks sharing a batch_id, and cancels the current one if it belongs to the batch."""
+        tasks_to_remove = [t for t in self.queue if t.get("params", {}).get("batch_id") == batch_id]
+        
+        for task in tasks_to_remove:
+            # Free up the signature
+            sig = task.get("signature")
+            if sig and sig in self.active_signatures:
+                self.active_signatures.remove(sig)
+            self.queue.remove(task)
+
+        # Check if the currently running task is part of this batch
+        killed_active = False
+        if self.current_task and self.current_task.get("params", {}).get("batch_id") == batch_id:
+            if self._current_async_task and not self._current_async_task.done():
+                self._current_async_task.cancel()
+                killed_active = True
+                
+        await manager.broadcast({"event": "log", "message": f"Batch {batch_id} terminated. Removed {len(tasks_to_remove)} pending tasks."})
+        await self._broadcast_state()
+        
+        return {"status": "batch_terminated", "removed_count": len(tasks_to_remove), "killed_active": killed_active}
+
+    async def kill_all_singles(self):
+        """Removes all standalone tasks (tasks without a batch_id)."""
+        tasks_to_remove = [t for t in self.queue if not t.get("params", {}).get("batch_id")]
+        
+        for task in tasks_to_remove:
+            sig = task.get("signature")
+            if sig and sig in self.active_signatures:
+                self.active_signatures.remove(sig)
+            self.queue.remove(task)
+
+        killed_active = False
+        if self.current_task and not self.current_task.get("params", {}).get("batch_id"):
+            if self._current_async_task and not self._current_async_task.done():
+                self._current_async_task.cancel()
+                killed_active = True
+                
+        await manager.broadcast({"event": "log", "message": f"Terminated {len(tasks_to_remove)} standalone tasks."})
+        await self._broadcast_state()
+        
+        return {"status": "singles_terminated", "removed_count": len(tasks_to_remove), "killed_active": killed_active}
+
     async def _broadcast_state(self):
         """Sends the current queue state to the frontend."""
         await manager.broadcast({
@@ -109,11 +154,11 @@ class Orchestrator:
                     self._current_async_task = asyncio.create_task(process_chat_download(
                         self.client, self.conn, p["chat_id"], p.get("overwrite", False), p.get("validate_mode", False), p.get("resume", True)
                     ))
-                elif self.current_task["type"] == "batch-download":
-                    p = self.current_task["params"]
-                    self._current_async_task = asyncio.create_task(process_batch_download(
-                        self.client, self.conn, p.get("overwrite", False), p.get("validate_mode", False), p.get("resume", True), p.get("sort", "default")
-                    ))
+                # elif self.current_task["type"] == "batch-download":
+                #     p = self.current_task["params"]
+                #     self._current_async_task = asyncio.create_task(process_batch_download(
+                #         self.client, self.conn, p.get("overwrite", False), p.get("validate_mode", False), p.get("resume", True), p.get("sort", "default")
+                #     ))
                 else:
                     raise ValueError("Unknown task type")
 

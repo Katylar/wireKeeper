@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import uuid
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, BackgroundTasks, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,15 +21,19 @@ from orchestrator import queue_manager
 telegram_client = None
 db_pool = None
 
-# Pydantic model for validating incoming settings from React
 class SettingsUpdate(BaseModel):
-    api_id: str
-    api_hash: str
-    session_name: str
-    download_path: str
-    alt_download_path: str
-    max_concurrent_heavy: str
-    max_concurrent_light: str
+    api_id: Optional[str] = None
+    api_hash: Optional[str] = None
+    session_name: Optional[str] = None
+    download_path: Optional[str] = None
+    alt_download_path: Optional[str] = None
+    max_concurrent_heavy: Optional[str] = None
+    max_concurrent_light: Optional[str] = None
+    max_retries: Optional[str] = None
+    speed_threshold_kb: Optional[str] = None
+    ignored_extensions: Optional[str] = None
+    ui_sort_config: Optional[str] = None
+    ui_filter_config: Optional[str] = None
 
 class ToggleRequest(BaseModel):
     chat_ids: List[int]
@@ -45,6 +50,17 @@ class MultiChatRequest(BaseModel):
 async def lifespan(app: FastAPI):
     global telegram_client, db_pool
     db_pool = await init_db()
+    
+    # --- NEW: Create Activity History Table ---
+    await db_pool.execute('''
+        CREATE TABLE IF NOT EXISTS activity_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT,
+            chat_id INTEGER,
+            stats TEXT
+        )
+    ''')
+    await db_pool.commit()
     
     settings = await get_settings_dict(db_pool)
     api_id, api_hash, session_name = settings.get('api_id'), settings.get('api_hash'), settings.get('session_name', 'wirekeeper_session')
@@ -167,13 +183,22 @@ async def toggle_chat_flags(req: ToggleRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @app.post("/api/sync/multiple")
 async def sync_multiple(req: MultiChatRequest):
     task_ids = []
+    if not req.chat_ids: return {"status": "No chats provided"}
+    
+    # 1. Look up all chat names at once
+    placeholders = ",".join("?" for _ in req.chat_ids)
+    query = f"SELECT chat_id, chat_name FROM chat_list WHERE chat_id IN ({placeholders})"
+    async with db_pool.execute(query, req.chat_ids) as cursor:
+        name_map = {r[0]: r[1] for r in await cursor.fetchall()}
 
     for cid in req.chat_ids:
-        tid = queue_manager.add_task("sync-single", {"chat_id": cid}, broadcast=False)
+        tid = queue_manager.add_task("sync-single", {
+            "chat_id": cid,
+            "chat_name": name_map.get(cid, str(cid)) # 2. Inject the name
+        }, broadcast=False)
         if tid: task_ids.append(tid)
 
     await queue_manager._broadcast_state()
@@ -182,10 +207,17 @@ async def sync_multiple(req: MultiChatRequest):
 @app.post("/api/download/multiple")
 async def download_multiple(req: MultiChatRequest):
     task_ids = []
+    if not req.chat_ids: return {"status": "No chats provided"}
+    
+    placeholders = ",".join("?" for _ in req.chat_ids)
+    query = f"SELECT chat_id, chat_name FROM chat_list WHERE chat_id IN ({placeholders})"
+    async with db_pool.execute(query, req.chat_ids) as cursor:
+        name_map = {r[0]: r[1] for r in await cursor.fetchall()}
+
     for cid in req.chat_ids:
-        # Silence the broadcast
         tid = queue_manager.add_task("download-chat", {
             "chat_id": cid, 
+            "chat_name": name_map.get(cid, str(cid)),
             "overwrite": req.overwrite, 
             "validate": req.validate_mode, 
             "resume": req.resume
@@ -197,20 +229,29 @@ async def download_multiple(req: MultiChatRequest):
 
 @app.post("/api/sync")
 async def trigger_sync():
-    task_id = queue_manager.add_task("sync-all", {})
+    task_id = queue_manager.add_task("sync-all", {"chat_name": "Global Database"})
     return {"status": "Queued Sync All", "task_id": task_id}
 
 @app.post("/api/sync/{chat_id}")
 async def trigger_chat_sync(chat_id: int):
-    task_id = queue_manager.add_task("sync-single", {"chat_id": chat_id})
+    async with db_pool.execute("SELECT chat_name FROM chat_list WHERE chat_id = ?", (chat_id,)) as cursor:
+        row = await cursor.fetchone()
+        chat_name = row[0] if row else str(chat_id)
+        
+    task_id = queue_manager.add_task("sync-single", {"chat_id": chat_id, "chat_name": chat_name})
     return {"status": "Queued Chat Sync", "task_id": task_id}
 
 @app.post("/api/download/{chat_id}")
 async def start_download(chat_id: int, overwrite: bool = False, validate: bool = False, resume: bool = True):
+    async with db_pool.execute("SELECT chat_name FROM chat_list WHERE chat_id = ?", (chat_id,)) as cursor:
+        row = await cursor.fetchone()
+        chat_name = row[0] if row else str(chat_id)
+        
     task_id = queue_manager.add_task("download-chat", {
-        "chat_id": chat_id, "overwrite": overwrite, "validate": validate, "resume": resume
+        "chat_id": chat_id, "chat_name": chat_name, "overwrite": overwrite, "validate": validate, "resume": resume
     })
     return {"status": "Queued Download", "task_id": task_id}
+
 
 @app.get("/api/chat/{chat_id}/files")
 async def get_chat_files(chat_id: int):
@@ -268,10 +309,54 @@ async def get_chat_files(chat_id: int):
 
 @app.post("/api/batch/start")
 async def start_batch(overwrite: bool = False, validate: bool = False, resume: bool = True, sort: str = "default"):
-    task_id = queue_manager.add_task("batch-download", {
-        "overwrite": overwrite, "validate": validate, "resume": resume, "sort": sort
-    })
-    return {"status": "Queued Batch", "task_id": task_id}
+    
+    order_mapping = {
+        "default": "ORDER BY defer ASC, total_messages ASC",
+        "chat_id_asc": "ORDER BY chat_id ASC",
+        "chat_id_desc": "ORDER BY chat_id DESC",
+        "messages_asc": "ORDER BY total_messages ASC",
+        "messages_desc": "ORDER BY total_messages DESC",
+        "date_added_asc": "ORDER BY date_added ASC",
+        "date_added_desc": "ORDER BY date_added DESC"
+    }
+    sql_order = order_mapping.get(sort, order_mapping["default"])
+    
+    query = f"SELECT chat_id, chat_name FROM chat_list WHERE is_batch = 1 AND enabled = 1 AND chat_status = 1 {sql_order}"
+    
+    async with db_pool.execute(query) as cursor:
+        batch_targets = await cursor.fetchall()
+        
+    if not batch_targets:
+        return {"status": "No valid chats marked for batch download.", "task_ids": []}
+
+    batch_id = str(uuid.uuid4())
+    total_chats = len(batch_targets)
+    task_ids = []
+
+    
+    for i, row in enumerate(batch_targets, 1):
+        chat_id, chat_name = row[0], row[1]
+        tid = queue_manager.add_task("download-chat", {
+            "chat_id": chat_id, 
+            "chat_name": chat_name,
+            "overwrite": overwrite, 
+            "validate": validate, 
+            "resume": resume,
+            "batch_id": batch_id,
+            "batch_index": i,
+            "batch_total": total_chats
+        }, broadcast=False)
+        if tid: task_ids.append(tid)
+
+    
+    await queue_manager._broadcast_state()
+    return {"status": "Queued Batch", "batch_id": batch_id, "task_ids": task_ids}
+
+@app.delete("/api/queue/batch/{batch_id}")
+async def kill_batch(batch_id: str):
+    """Kills all tasks associated with a specific batch."""
+    result = await queue_manager.kill_batch(batch_id)
+    return result
 
 @app.get("/api/queue")
 async def get_queue():
@@ -281,11 +366,19 @@ async def get_queue():
         "queue": queue_manager.queue
     }
 
+@app.delete("/api/queue/singles")
+async def kill_all_singles():
+    """Kills all standalone tasks."""
+    result = await queue_manager.kill_all_singles()
+    return result
+
 @app.delete("/api/queue/{task_id}")
 async def kill_task(task_id: str):
     """Kills an active task or removes it from the queue."""
     result = await queue_manager.kill_task(task_id)
     return result
+
+
 
 @app.get("/api/status")
 async def system_status():
@@ -305,14 +398,29 @@ async def get_current_settings():
 
 @app.post("/api/settings")
 async def save_settings(settings: SettingsUpdate):
-    """Saves settings to the database."""
-    settings_dict = settings.model_dump()
+    """Saves settings to the database using partial updates."""
+    # exclude_unset=True ensures we only update fields that were actually sent in the JSON payload!
+    settings_dict = settings.model_dump(exclude_unset=True) 
     
     for key, value in settings_dict.items():
         await update_setting(db_pool, key, value) 
     
-    return {"status": "Settings saved successfully. Restart required for API keys."}
+    return {"status": "Settings saved successfully."}
 
+@app.get("/api/history")
+async def get_activity_history():
+    """Fetches persistent session history."""
+    async with db_pool.execute("SELECT timestamp, chat_id, stats FROM activity_history ORDER BY id ASC") as cursor:
+        rows = await cursor.fetchall()
+        history = []
+        for r in rows:
+            history.append({
+                "time": r[0],
+                "chat_id": r[1],
+                "stats": json.loads(r[2]) if r[2] else {}
+            })
+        return history
+        
 if __name__ == "__main__":
     import uvicorn
     

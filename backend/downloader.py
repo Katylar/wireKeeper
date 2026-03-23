@@ -463,7 +463,7 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
             stats['total_messages_scanned'] += 1
             
             if stats['total_messages_scanned'] % 500 == 0:
-                await manager.broadcast({"event": "scan_progress", "scanned": stats['total_messages_scanned']})
+                await manager.broadcast({"event": "scan_progress", "chat_id": chat_id, "scanned": stats['total_messages_scanned']})
 
             if message.id > highest_scanned_id: highest_scanned_id = message.id
             msg_topic_id = get_message_topic_id(message)
@@ -606,7 +606,12 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
     await update_total_downloaded(conn, chat_id)
 
     total_downloads_needed = len(temp_download_list)
-    await manager.broadcast({"event": "scan_complete", "queued": total_downloads_needed})
+    await manager.broadcast({
+        "event": "scan_complete", 
+        "chat_id": chat_id,
+        "scanned": stats['total_messages_scanned'],
+        "queued": total_downloads_needed
+    })
     
     if total_downloads_needed > 0:
         queue_heavy = asyncio.Queue()
@@ -667,6 +672,10 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
     try: os.rmdir(base_folder)
     except OSError: pass
 
+    time_str = datetime.now().strftime("%I:%M:%S %p")
+    await conn.execute("INSERT INTO activity_history (timestamp, chat_id, stats) VALUES (?, ?, ?)", (time_str, chat_id, json.dumps(stats)))
+    await conn.commit()    
+
     await manager.broadcast({
         "event": "chat_complete", 
         "chat_id": chat_id,
@@ -704,6 +713,7 @@ async def process_batch_download(client, conn, overwrite_mode=False, validate_mo
     await manager.broadcast({"event": "log", "message": f"Batch processing {total_chats} chats."})
     
     for i, row in enumerate(batch_targets, 1):
+    
         await asyncio.sleep(0.1) 
         
         chat_id, chat_name = row[0], row[1]
@@ -711,6 +721,7 @@ async def process_batch_download(client, conn, overwrite_mode=False, validate_mo
         try:
             await process_chat_download(client, conn, chat_id, overwrite_mode, validate_mode, resume_mode)
         except asyncio.CancelledError:
+            # Re-raise so the Orchestrator knows the batch itself was killed
             raise 
         except Exception as e:
             await manager.broadcast({"event": "error", "message": f"Skipping {chat_name} due to error: {e}"})

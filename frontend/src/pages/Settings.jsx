@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useEngine } from "../context/WebSocketProvider";
 import "../styles/settings.scss";
 
 export default function Settings() {
@@ -14,7 +14,7 @@ export default function Settings() {
     });
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState(null);
-    const engineState = useOutletContext();
+    const engineState = useEngine();
 
     useEffect(() => {
         // Load current settings when the page mounts

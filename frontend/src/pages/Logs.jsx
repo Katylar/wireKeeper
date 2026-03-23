@@ -1,9 +1,9 @@
 import React from "react";
-import { useOutletContext } from "react-router-dom";
+import { useEngine } from "../context/WebSocketProvider";
 import LogViewer from "../components/LogViewer";
 
 export default function Logs() {
-    const { logs } = useOutletContext();
+    const { logs } = useEngine();
 
     return (
         <div

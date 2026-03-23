@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useOutletContext, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useEngine } from "../context/WebSocketProvider";
 import ChatList from "../components/ChatList";
 import "../styles/homepage.scss";
 
 export default function Home() {
-    const { systemStatus, activeTasks, activeScans } = useOutletContext();
+    const { systemStatus, activeTasks, activeScans } = useEngine();
     const [chats, setChats] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const navigate = useNavigate();

@@ -1,16 +1,14 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Virtuoso } from "react-virtuoso";
 import ChatRow from "./ChatRow";
 import Modal from "./Modal";
-import { useOrchestrator } from "../hooks/useOrchestrator"; // Assuming this hook path
+import { useEngine } from "../context/WebSocketProvider";
 import "../styles/layout/chatlist.scss";
 
 export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
     // --- ORCHESTRATOR STATE ---
-    const { currentTask, queue, getTaskForChat, killTask } = useOrchestrator(
-        "ws://localhost:39486/ws",
-    );
+    const { currentTask, queue, getTaskForChat, killTask } = useEngine();
 
     // --- UI STATE ---
     const [searchQuery, setSearchQuery] = useState("");
@@ -67,13 +65,47 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
 
     const applySort = () => {
         setSortConfig(tempSortConfig);
+        fetch("http://localhost:39486/api/settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                ui_sort_config: JSON.stringify(tempSortConfig),
+            }),
+        });
         closeModal();
     };
 
     const applyFilter = () => {
         setFilterConfig(tempFilterConfig);
+        fetch("http://localhost:39486/api/settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                ui_filter_config: JSON.stringify(tempFilterConfig),
+            }),
+        });
         closeModal();
     };
+
+    useEffect(() => {
+        fetch("http://localhost:39486/api/settings")
+            .then((res) => res.json())
+            .then((data) => {
+                if (data.ui_sort_config) {
+                    const parsedSort = JSON.parse(data.ui_sort_config);
+                    setSortConfig(parsedSort);
+                    setTempSortConfig(parsedSort);
+                }
+                if (data.ui_filter_config) {
+                    const parsedFilter = JSON.parse(data.ui_filter_config);
+                    setFilterConfig(parsedFilter);
+                    setTempFilterConfig(parsedFilter);
+                }
+            })
+            .catch((err) =>
+                console.error("Failed to load UI preferences:", err),
+            );
+    }, []);
 
     // --- DATA PIPELINE ---
     const processedChats = useMemo(() => {

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useOutletContext, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
+import { useEngine } from "../context/WebSocketProvider";
 import FileList from "../components/FileList";
 
 export default function ChatDetails() {
     const { id } = useParams();
-    const { activeTasks, activeScans } = useOutletContext();
+    const { activeTasks, activeScans } = useEngine();
 
     const [chat, setChat] = useState(null);
     const [categorizedFiles, setCategorizedFiles] = useState(null);
