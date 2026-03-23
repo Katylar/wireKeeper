@@ -167,6 +167,34 @@ async def toggle_chat_flags(req: ToggleRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.post("/api/sync/multiple")
+async def sync_multiple(req: MultiChatRequest):
+    task_ids = []
+
+    for cid in req.chat_ids:
+        tid = queue_manager.add_task("sync-single", {"chat_id": cid}, broadcast=False)
+        if tid: task_ids.append(tid)
+
+    await queue_manager._broadcast_state()
+    return {"status": "Queued Multiple Syncs", "task_ids": task_ids}
+
+@app.post("/api/download/multiple")
+async def download_multiple(req: MultiChatRequest):
+    task_ids = []
+    for cid in req.chat_ids:
+        # Silence the broadcast
+        tid = queue_manager.add_task("download-chat", {
+            "chat_id": cid, 
+            "overwrite": req.overwrite, 
+            "validate": req.validate_mode, 
+            "resume": req.resume
+        }, broadcast=False)
+        if tid: task_ids.append(tid)
+
+    await queue_manager._broadcast_state()
+    return {"status": "Queued Multiple Downloads", "task_ids": task_ids}
+
 @app.post("/api/sync")
 async def trigger_sync():
     task_id = queue_manager.add_task("sync-all", {})
@@ -258,29 +286,6 @@ async def kill_task(task_id: str):
     """Kills an active task or removes it from the queue."""
     result = await queue_manager.kill_task(task_id)
     return result
-
-@app.post("/api/sync/multiple")
-async def sync_multiple(req: MultiChatRequest):
-    """Accepts an ordered array of chat IDs and queues them for syncing individually."""
-    task_ids = []
-    for cid in req.chat_ids:
-        tid = queue_manager.add_task("sync-single", {"chat_id": cid})
-        task_ids.append(tid)
-    return {"status": "Queued Multiple Syncs", "task_ids": task_ids}
-
-@app.post("/api/download/multiple")
-async def download_multiple(req: MultiChatRequest):
-    """Accepts an ordered array of chat IDs and queues them for downloading sequentially."""
-    task_ids = []
-    for cid in req.chat_ids:
-        tid = queue_manager.add_task("download-chat", {
-            "chat_id": cid, 
-            "overwrite": req.overwrite, 
-            "validate": req.validate_mode, 
-            "resume": req.resume
-        })
-        task_ids.append(tid)
-    return {"status": "Queued Multiple Downloads", "task_ids": task_ids}
 
 @app.get("/api/status")
 async def system_status():

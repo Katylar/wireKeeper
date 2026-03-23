@@ -12,24 +12,42 @@ class Orchestrator:
         self._wakeup = asyncio.Event()
         self.client = None
         self.conn = None
+        # NEW: Instant lookup registry for deduplication
+        self.active_signatures = set() 
 
     def initialize(self, client, conn):
         self.client = client
         self.conn = conn
 
-    def add_task(self, task_type: str, params: dict):
-        """Adds a task to the FIFO queue."""
+    def add_task(self, task_type: str, params: dict, broadcast: bool = True):
+        chat_id = params.get("chat_id")
+        signature = None
+        
+        # Create a unique signature for this exact job
+        if chat_id:
+            signature = f"{task_type}_{chat_id}"
+            if signature in self.active_signatures:
+                return None # Instantly reject duplicates
+
         task_id = str(uuid.uuid4())
         task = {
             "id": task_id,
             "type": task_type,
             "params": params,
             "status": "pending",
+            "signature": signature, # Store it on the task to easily remove later
             "added_at": time.time()
         }
+        
+        if signature:
+            self.active_signatures.add(signature)
+
         self.queue.append(task)
-        self._wakeup.set() # Wake up the worker loop if it's sleeping
-        asyncio.create_task(self._broadcast_state())
+        self._wakeup.set() 
+        
+        if broadcast:
+            asyncio.create_task(self._broadcast_state())
+            
         return task_id
 
     async def kill_task(self, task_id: str):
@@ -37,6 +55,11 @@ class Orchestrator:
         # 1. Check if it's in the pending queue
         for i, task in enumerate(self.queue):
             if task["id"] == task_id:
+                # Remove from signature set so it can be re-queued later
+                sig = task.get("signature")
+                if sig and sig in self.active_signatures:
+                    self.active_signatures.remove(sig)
+                
                 del self.queue[i]
                 await manager.broadcast({"event": "log", "message": f"Task {task['type']} removed from queue."})
                 await self._broadcast_state()
@@ -84,12 +107,12 @@ class Orchestrator:
                 elif self.current_task["type"] == "download-chat":
                     p = self.current_task["params"]
                     self._current_async_task = asyncio.create_task(process_chat_download(
-                        self.client, self.conn, p["chat_id"], p.get("overwrite", False), p.get("validate", False), p.get("resume", True)
+                        self.client, self.conn, p["chat_id"], p.get("overwrite", False), p.get("validate_mode", False), p.get("resume", True)
                     ))
                 elif self.current_task["type"] == "batch-download":
                     p = self.current_task["params"]
                     self._current_async_task = asyncio.create_task(process_batch_download(
-                        self.client, self.conn, p.get("overwrite", False), p.get("validate", False), p.get("resume", True), p.get("sort", "default")
+                        self.client, self.conn, p.get("overwrite", False), p.get("validate_mode", False), p.get("resume", True), p.get("sort", "default")
                     ))
                 else:
                     raise ValueError("Unknown task type")
@@ -104,6 +127,12 @@ class Orchestrator:
             except Exception as e:
                 await manager.broadcast({"event": "error", "message": f"Task {self.current_task['type']} failed: {e}"})
             finally:
+                # Free up the signature so the chat can be queued again later
+                if self.current_task:
+                    sig = self.current_task.get("signature")
+                    if sig and sig in self.active_signatures:
+                        self.active_signatures.remove(sig)
+                
                 self.current_task = None
                 self._current_async_task = None
                 await self._broadcast_state()

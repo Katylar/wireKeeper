@@ -75,6 +75,18 @@ const ChatRow = React.memo(
                             ↻ {activeStatus.queueInfo}
                         </div>
                     )}
+
+                    {activeStatus && (
+                        <div className={`status-badge ${activeStatus.style}`}>
+                            ↻ {activeStatus.label}
+                            <button
+                                className="btn-kill-task"
+                                // onClick={() => onKillTask(activeStatus.taskId)}
+                                title="Cancel this task">
+                                ✕
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* STATISTICS */}

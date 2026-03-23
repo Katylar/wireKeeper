@@ -3,20 +3,19 @@ import { Link } from "react-router-dom";
 import { Virtuoso } from "react-virtuoso";
 import ChatRow from "./ChatRow";
 import Modal from "./Modal";
+import { useOrchestrator } from "../hooks/useOrchestrator"; // Assuming this hook path
 import "../styles/layout/chatlist.scss";
 
-export default function ChatList({
-    chats,
-    activeTasks,
-    activeScans,
-    onDownload,
-    onRefresh,
-    setChats,
-}) {
+export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
+    // --- ORCHESTRATOR STATE ---
+    const { currentTask, queue, getTaskForChat, killTask } = useOrchestrator(
+        "ws://localhost:39486/ws",
+    );
+
     // --- UI STATE ---
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedChats, setSelectedChats] = useState(new Set());
-    const [activeModal, setActiveModal] = useState(null); // 'sort', 'filter', 'batch', or null
+    const [activeModal, setActiveModal] = useState(null); // 'sort', 'filter', 'batch', 'listed-download', 'selected-download', or null
 
     // --- SORTING & FILTERING DEFAULTS ---
     const defaultSort = { key: "chat_id", direction: "asc" };
@@ -47,19 +46,18 @@ export default function ChatList({
     const [tempSortConfig, setTempSortConfig] = useState(defaultSort);
     const [tempFilterConfig, setTempFilterConfig] = useState(defaultFilter);
 
-    // --- BATCH DOWNLOAD STATE ---
-    const [batchConfig, setBatchConfig] = useState({
+    // --- DOWNLOAD CONFIG STATE (Shared by Batch, Listed, Selected) ---
+    const [dlConfig, setDlConfig] = useState({
         overwrite: false,
         validate: false,
         resume: true,
-        sort: "default",
+        sort: "default", // Used specifically for Batch
     });
 
     // --- MODAL CONTROLS ---
     const openModal = (type) => {
         if (type === "sort") setTempSortConfig(sortConfig);
         if (type === "filter") setTempFilterConfig(filterConfig);
-        // Batch config retains its last selected state automatically
         setActiveModal(type);
     };
 
@@ -80,22 +78,15 @@ export default function ChatList({
     // --- DATA PIPELINE ---
     const processedChats = useMemo(() => {
         let result = chats.filter((chat) => {
-            // 1. Visibility & State Filters
             if (!filterConfig.showHidden && chat.hidden) return false;
             if (filterConfig.onlyEnabled && !chat.enabled) return false;
             if (filterConfig.onlyDisabled && chat.enabled) return false;
             if (filterConfig.onlyLive && !chat.chat_status) return false;
             if (filterConfig.onlyDead && chat.chat_status) return false;
-
-            // 2. Batch Engine Filters
             if (filterConfig.onlyBatchEnabled && !chat.is_batch) return false;
             if (filterConfig.onlyBatchDisabled && chat.is_batch) return false;
-
-            // 3. Queue Management Filters
             if (filterConfig.onlyDeferred && !chat.defer) return false;
             if (filterConfig.onlyNonDeferred && chat.defer) return false;
-
-            // 4. Chat Attribute Filters
             if (
                 filterConfig.onlyMultiTopic &&
                 (!chat.topics || chat.topics.length <= 1)
@@ -106,15 +97,12 @@ export default function ChatList({
             if (filterConfig.onlyEmptyChats && chat.total_messages !== 0)
                 return false;
             if (filterConfig.onlyUnarchived && chat.last_archived) return false;
-
-            // 5. Type Filters
             if (!filterConfig.showGroups && chat.type === "Group") return false;
             if (!filterConfig.showChannels && chat.type === "Channel")
                 return false;
             if (!filterConfig.showPrivate && chat.type === "Private")
                 return false;
 
-            // 6. Search Check
             if (searchQuery) {
                 const q = searchQuery.toLowerCase();
                 const matchName = chat.name?.toLowerCase().includes(q);
@@ -126,27 +114,20 @@ export default function ChatList({
                 if (!matchName && !matchFolderName && !matchOldName && !matchId)
                     return false;
             }
-
             return true;
         });
 
-        // 7. Sort Pass
         result.sort((a, b) => {
             let valA = a[sortConfig.key];
             let valB = b[sortConfig.key];
-
-            // Null safety
             if (valA === null || valA === undefined)
                 valA = typeof valB === "string" ? "" : 0;
             if (valB === null || valB === undefined)
                 valB = typeof valA === "string" ? "" : 0;
-
-            // Case-insensitive alphabetical sort
             if (typeof valA === "string" && typeof valB === "string") {
                 valA = valA.toLowerCase();
                 valB = valB.toLowerCase();
             }
-
             if (valA < valB) return sortConfig.direction === "asc" ? -1 : 1;
             if (valA > valB) return sortConfig.direction === "asc" ? 1 : -1;
             return 0;
@@ -155,27 +136,64 @@ export default function ChatList({
         return result;
     }, [chats, filterConfig, sortConfig, searchQuery]);
 
+    // DERIVED SELECTIONS (Respecting Shown and Enabled)
+    const listedEnabledChats = useMemo(
+        () => processedChats.filter((c) => c.enabled),
+        [processedChats],
+    );
+    const selectedEnabledChats = useMemo(
+        () =>
+            processedChats.filter(
+                (c) => selectedChats.has(c.chat_id) && c.enabled,
+            ),
+        [processedChats, selectedChats],
+    );
+
+    // RESTORED: Missing Boolean flags for Button Labels
+    const selectedData = useMemo(
+        () => processedChats.filter((c) => selectedChats.has(c.chat_id)),
+        [processedChats, selectedChats],
+    );
+    const isAllEnabled =
+        selectedData.length > 0 && selectedData.every((chat) => chat.enabled);
+    const isAllHidden =
+        selectedData.length > 0 && selectedData.every((chat) => chat.hidden);
+    const isAllBatch =
+        selectedData.length > 0 && selectedData.every((chat) => chat.is_batch);
+    const isAllDeferred =
+        selectedData.length > 0 && selectedData.every((chat) => chat.defer);
+
     const totalChats = chats.length;
     const visibleChats = processedChats.length;
     const filteredChats = totalChats - visibleChats;
 
-    // Quick Stats Calculations
     const totalHiddenCount = chats.filter((c) => c.hidden).length;
     const totalDisabledCount = chats.filter((c) => !c.enabled).length;
     const totalDeadCount = chats.filter((c) => !c.chat_status).length;
-
-    // Batch specific stats (must match backend query logic)
     const totalBatchChats = chats.filter(
         (c) => c.is_batch && c.enabled && c.chat_status,
     ).length;
 
+    // --- QUEUE DETECTION FOR BUTTONS ---
+    const isBatchBusy = useMemo(
+        () =>
+            currentTask?.type === "batch-download" ||
+            queue.some((t) => t.type === "batch-download"),
+        [currentTask, queue],
+    );
+
+    const isSyncBusy = useMemo(
+        () =>
+            currentTask?.type === "sync-all" ||
+            queue.some((t) => t.type === "sync-all"),
+        [currentTask, queue],
+    );
+
     // --- HANDLERS ---
     const handleSelectAll = (e) => {
-        if (e.target.checked) {
+        if (e.target.checked)
             setSelectedChats(new Set(processedChats.map((c) => c.chat_id)));
-        } else {
-            setSelectedChats(new Set());
-        }
+        else setSelectedChats(new Set());
     };
 
     const handleSelectOne = (chatId) => {
@@ -192,23 +210,18 @@ export default function ChatList({
     const handleTempFilterChange = (key, value) => {
         setTempFilterConfig((prev) => {
             let updates = { [key]: value };
-            // Mutually Exclusive toggles logic
             if (key === "onlyEnabled" && value) updates.onlyDisabled = false;
             if (key === "onlyDisabled" && value) updates.onlyEnabled = false;
-
             if (key === "onlyLive" && value) updates.onlyDead = false;
             if (key === "onlyDead" && value) updates.onlyLive = false;
-
             if (key === "onlyBatchEnabled" && value)
                 updates.onlyBatchDisabled = false;
             if (key === "onlyBatchDisabled" && value)
                 updates.onlyBatchEnabled = false;
-
             if (key === "onlyDeferred" && value)
                 updates.onlyNonDeferred = false;
             if (key === "onlyNonDeferred" && value)
                 updates.onlyDeferred = false;
-
             return { ...prev, ...updates };
         });
     };
@@ -217,18 +230,14 @@ export default function ChatList({
         if (setChats) {
             setChats((prevChats) =>
                 prevChats.map((chat) => {
-                    if (chatIds.includes(chat.chat_id)) {
+                    if (chatIds.includes(chat.chat_id))
                         return { ...chat, [field]: targetValue };
-                    }
                     return chat;
                 }),
             );
         }
-
-        if (field === "hidden" && targetValue === true) {
+        if (field === "hidden" && targetValue === true)
             setSelectedChats(new Set());
-        }
-
         try {
             await fetch("http://localhost:39486/api/chats/toggle", {
                 method: "POST",
@@ -239,11 +248,6 @@ export default function ChatList({
                     value: targetValue,
                 }),
             });
-
-            if (field === "hidden" && targetValue === true) {
-                setSelectedChats(new Set());
-            }
-
             if (onRefresh) onRefresh();
         } catch (err) {
             console.error(`Failed to toggle ${field}:`, err);
@@ -256,78 +260,79 @@ export default function ChatList({
         const selectedData = processedChats.filter((c) =>
             selectedArr.includes(c.chat_id),
         );
-
-        // If ANY selected item is false, set ALL to true. Else set ALL to false.
         const targetValue = selectedData.some((c) => !c[field]);
         handleToggle(selectedArr, field, targetValue);
     };
 
+    const handleGlobalSync = async () => {
+        try {
+            await fetch("http://localhost:39486/api/sync", { method: "POST" });
+            if (onRefresh) onRefresh();
+        } catch (err) {
+            console.error("Global sync failed:", err);
+        }
+    };
+
+    const handleSyncGroup = async (mode) => {
+        const ids =
+            mode === "selected"
+                ? Array.from(selectedChats)
+                : listedEnabledChats.map((c) => c.chat_id);
+        try {
+            await fetch("http://localhost:39486/api/sync/multiple", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_ids: ids }),
+            });
+            if (onRefresh) onRefresh();
+        } catch (err) {
+            console.error("Multi-sync failed:", err);
+        }
+    };
+
     const handleStartBatch = async () => {
         try {
-            // URLSearchParams converts the booleans to strings ("true"/"false"), which FastAPI accepts
             const params = new URLSearchParams({
-                overwrite: batchConfig.overwrite,
-                validate: batchConfig.validate,
-                resume: batchConfig.resume,
-                sort: batchConfig.sort,
+                overwrite: dlConfig.overwrite,
+                validate: dlConfig.validate,
+                resume: dlConfig.resume,
+                sort: dlConfig.sort,
             });
-
             await fetch(
                 `http://localhost:39486/api/batch/start?${params.toString()}`,
-                {
-                    method: "POST",
-                },
+                { method: "POST" },
             );
-
             closeModal();
             if (onRefresh) onRefresh();
         } catch (err) {
-            console.error("Failed to trigger batch download:", err);
+            console.error("Batch trigger failed:", err);
+        }
+    };
+
+    const handleEnqueueDownloads = async (mode) => {
+        const ids =
+            mode === "selected"
+                ? selectedEnabledChats.map((c) => c.chat_id)
+                : listedEnabledChats.map((c) => c.chat_id);
+        try {
+            await fetch("http://localhost:39486/api/download/multiple", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    chat_ids: ids,
+                    overwrite: dlConfig.overwrite,
+                    validate_mode: dlConfig.validate,
+                    resume: dlConfig.resume,
+                }),
+            });
+            closeModal();
+            if (onRefresh) onRefresh();
+        } catch (err) {
+            console.error("Enqueue failed:", err);
         }
     };
 
     // --- RENDER HELPERS ---
-
-    // 1. New Memoized Task Dictionary for O(1) Lookups
-    const tasksByChatId = useMemo(() => {
-        const lookup = {};
-        if (activeTasks) {
-            Object.values(activeTasks).forEach((task) => {
-                if (!lookup[task.chat_id]) lookup[task.chat_id] = [];
-                lookup[task.chat_id].push(task);
-            });
-        }
-        return lookup;
-    }, [activeTasks]);
-
-    // 2. Updated to use the fast lookup
-    const getChatActiveStatus = (chatId) => {
-        const tasks = tasksByChatId[chatId] || [];
-        const isScanning = Boolean(activeScans && activeScans[chatId]);
-
-        if (tasks.length === 0 && isScanning)
-            return { isScanning: true, queueInfo: "Scanning..." };
-        if (tasks.length === 0) return null;
-        return {
-            isScanning: false,
-            activeCount: tasks.length,
-            queueInfo: tasks[0].queue_info || "Downloading...",
-        };
-    };
-
-    const selectedData = processedChats.filter((c) =>
-        selectedChats.has(c.chat_id),
-    );
-    const isAllEnabled =
-        selectedData.length > 0 && selectedData.every((chat) => chat.enabled);
-    const isAllHidden =
-        selectedData.length > 0 && selectedData.every((chat) => chat.hidden);
-    const isAllBatch =
-        selectedData.length > 0 && selectedData.every((chat) => chat.is_batch);
-    const isAllDeferred =
-        selectedData.length > 0 && selectedData.every((chat) => chat.defer);
-
-    // --- MODAL CONTENTS ---
     const renderSortModal = () => (
         <div className="modal-content-wrapper">
             <div className="modal-section">
@@ -361,9 +366,7 @@ export default function ChatList({
                     Alphabetical (Chat Name)
                 </label>
             </div>
-
             <hr className="modal-divider" />
-
             <div className="modal-section">
                 <strong className="section-title">Volume & Size Sorting</strong>
                 <label className="modal-input-label">
@@ -409,9 +412,7 @@ export default function ChatList({
                     Message Count (Total Messages)
                 </label>
             </div>
-
             <hr className="modal-divider" />
-
             <div className="modal-section">
                 <strong className="section-title">Timeline Sorting</strong>
                 <label className="modal-input-label">
@@ -443,9 +444,7 @@ export default function ChatList({
                     Last Downloaded (File Written to Disk)
                 </label>
             </div>
-
             <hr className="modal-divider" />
-
             <div className="modal-highlight-box">
                 <strong className="highlight-title">Sort Direction</strong>
                 <div className="modal-radio-group">
@@ -502,9 +501,7 @@ export default function ChatList({
                     Show Hidden Chats
                 </label>
             </div>
-
             <hr className="modal-divider" />
-
             <div className="modal-section">
                 <strong className="section-title">State</strong>
                 <label className="modal-input-label">
@@ -554,9 +551,7 @@ export default function ChatList({
                     Show ONLY Dead Chats
                 </label>
             </div>
-
             <hr className="modal-divider" />
-
             <div className="modal-section">
                 <strong className="section-title">Batch Engine</strong>
                 <label className="modal-input-label">
@@ -586,9 +581,7 @@ export default function ChatList({
                     Show ONLY Batch-Disabled
                 </label>
             </div>
-
             <hr className="modal-divider" />
-
             <div className="modal-section">
                 <strong className="section-title">Queue Management</strong>
                 <label className="modal-input-label">
@@ -618,9 +611,7 @@ export default function ChatList({
                     Show ONLY Non-Deferred
                 </label>
             </div>
-
             <hr className="modal-divider" />
-
             <div className="modal-section">
                 <strong className="section-title">Chat Attributes</strong>
                 <label className="modal-input-label">
@@ -676,9 +667,7 @@ export default function ChatList({
                     Show ONLY Unarchived
                 </label>
             </div>
-
             <hr className="modal-divider" />
-
             <div className="modal-section">
                 <strong className="section-title">Type Filters</strong>
                 <label className="modal-input-label">
@@ -735,7 +724,6 @@ export default function ChatList({
                         {totalBatchChats}
                     </span>
                 </div>
-
                 <label
                     className="modal-input-label"
                     style={{
@@ -751,12 +739,9 @@ export default function ChatList({
                     </strong>
                     <select
                         className="modal-select"
-                        value={batchConfig.sort}
+                        value={dlConfig.sort}
                         onChange={(e) =>
-                            setBatchConfig({
-                                ...batchConfig,
-                                sort: e.target.value,
-                            })
+                            setDlConfig({ ...dlConfig, sort: e.target.value })
                         }
                         style={{
                             padding: "0.4rem",
@@ -797,17 +782,15 @@ export default function ChatList({
                     Note: Deferred List still applies.
                 </small>
             </div>
-
             <hr className="modal-divider" />
-
             <div className="modal-section">
                 <label className="modal-input-label">
                     <input
                         type="checkbox"
-                        checked={batchConfig.overwrite}
+                        checked={dlConfig.overwrite}
                         onChange={(e) =>
-                            setBatchConfig({
-                                ...batchConfig,
+                            setDlConfig({
+                                ...dlConfig,
                                 overwrite: e.target.checked,
                             })
                         }
@@ -817,10 +800,10 @@ export default function ChatList({
                 <label className="modal-input-label">
                     <input
                         type="checkbox"
-                        checked={batchConfig.validate}
+                        checked={dlConfig.validate}
                         onChange={(e) =>
-                            setBatchConfig({
-                                ...batchConfig,
+                            setDlConfig({
+                                ...dlConfig,
                                 validate: e.target.checked,
                             })
                         }
@@ -830,10 +813,10 @@ export default function ChatList({
                 <label className="modal-input-label">
                     <input
                         type="checkbox"
-                        checked={batchConfig.resume}
+                        checked={dlConfig.resume}
                         onChange={(e) =>
-                            setBatchConfig({
-                                ...batchConfig,
+                            setDlConfig({
+                                ...dlConfig,
                                 resume: e.target.checked,
                             })
                         }
@@ -843,6 +826,82 @@ export default function ChatList({
             </div>
         </div>
     );
+
+    const renderDownloadModal = (mode) => {
+        const isSelected = mode === "selected";
+        const count = isSelected
+            ? selectedEnabledChats.length
+            : listedEnabledChats.length;
+        const title = isSelected
+            ? "Download all Selected Chats"
+            : "Download all Listed Chats";
+
+        return (
+            <div className="modal-content-wrapper batch-wrapper">
+                <div className="modal-section">
+                    <div
+                        className="chat-meta"
+                        style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>
+                        {isSelected
+                            ? "Total Chats in Selected: "
+                            : "Total Chats in Shown and Enabled: "}
+                        <span className="stat-value highlight">{count}</span>
+                    </div>
+                    <div
+                        className="chat-meta"
+                        style={{
+                            color: "#a6adc8",
+                            fontSize: "0.9rem",
+                            fontStyle: "italic",
+                        }}>
+                        Queue Order: Using current Sorting scheme
+                    </div>
+                </div>
+                <hr className="modal-divider" />
+                <div className="modal-section">
+                    <label className="modal-input-label">
+                        <input
+                            type="checkbox"
+                            checked={dlConfig.overwrite}
+                            onChange={(e) =>
+                                setDlConfig({
+                                    ...dlConfig,
+                                    overwrite: e.target.checked,
+                                })
+                            }
+                        />{" "}
+                        Redownload & Overwrite Files in the Vault
+                    </label>
+                    <label className="modal-input-label">
+                        <input
+                            type="checkbox"
+                            checked={dlConfig.validate}
+                            onChange={(e) =>
+                                setDlConfig({
+                                    ...dlConfig,
+                                    validate: e.target.checked,
+                                })
+                            }
+                        />{" "}
+                        Scan from Start of Chat to find Missed Files
+                    </label>
+                    <label className="modal-input-label">
+                        <input
+                            type="checkbox"
+                            checked={dlConfig.resume}
+                            onChange={(e) =>
+                                setDlConfig({
+                                    ...dlConfig,
+                                    resume: e.target.checked,
+                                })
+                            }
+                        />{" "}
+                        Automatically Resume Interrupted Downloads
+                    </label>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div className="chat-list-container">
@@ -912,6 +971,44 @@ export default function ChatList({
                 {renderBatchModal()}
             </Modal>
 
+            <Modal
+                isOpen={activeModal === "listed-download"}
+                onClose={closeModal}
+                title="Download all Listed Chats"
+                footerActions={
+                    <>
+                        <button className="btn-cancel" onClick={closeModal}>
+                            Cancel
+                        </button>
+                        <button
+                            className="btn-apply"
+                            onClick={() => handleEnqueueDownloads("listed")}>
+                            ENQUEUE CHATS FOR DOWNLOAD
+                        </button>
+                    </>
+                }>
+                {renderDownloadModal("listed")}
+            </Modal>
+
+            <Modal
+                isOpen={activeModal === "selected-download"}
+                onClose={closeModal}
+                title="Download all Selected Chats"
+                footerActions={
+                    <>
+                        <button className="btn-cancel" onClick={closeModal}>
+                            Cancel
+                        </button>
+                        <button
+                            className="btn-apply"
+                            onClick={() => handleEnqueueDownloads("selected")}>
+                            ENQUEUE CHATS FOR DOWNLOAD
+                        </button>
+                    </>
+                }>
+                {renderDownloadModal("selected")}
+            </Modal>
+
             {/* --- TOP CONTROL BAR --- */}
             <div className="chat-controls-bar">
                 <div className="controls-row">
@@ -963,15 +1060,22 @@ export default function ChatList({
                 <div className="controls-row">
                     <div className="btn-group">
                         <button
-                            className="control-btn primary"
+                            className={`control-btn primary ${isBatchBusy ? "busy-state" : ""}`}
+                            disabled={isBatchBusy}
                             title="Starts downloading all enabled chats that are part of the Batch"
                             onClick={() => openModal("batch")}>
-                            Download Batch
+                            {isBatchBusy
+                                ? "Batch Active..."
+                                : "Start Batch Download"}
                         </button>
                         <button
-                            className="control-btn primary"
-                            title="Syncs with your Telegram account, grabbing all newly added chats and refreshing the metadata of existing">
-                            Sync to Telegram
+                            className={`control-btn primary ${isSyncBusy ? "busy-state" : ""}`}
+                            disabled={isSyncBusy}
+                            title="Syncs with your Telegram account, refreshing metadata"
+                            onClick={handleGlobalSync}>
+                            {isSyncBusy
+                                ? "Syncing..."
+                                : "Sync with Telegram Servers"}
                         </button>
                     </div>
                     <div className="btn-group">
@@ -1007,10 +1111,16 @@ export default function ChatList({
                                         ? "Remove Selected from Deferred List"
                                         : "Add Selected to Deferred List"}
                                 </button>
-                                <button className="control-btn accent">
+                                <button
+                                    className="control-btn accent"
+                                    onClick={() =>
+                                        openModal("selected-download")
+                                    }>
                                     Download Selected ({selectedChats.size})
                                 </button>
-                                <button className="control-btn accent">
+                                <button
+                                    className="control-btn accent"
+                                    onClick={() => handleSyncGroup("selected")}>
                                     Sync Selected ({selectedChats.size})
                                 </button>
                                 <button className="control-btn primary">
@@ -1021,18 +1131,22 @@ export default function ChatList({
                             <>
                                 <button
                                     className="control-btn primary"
-                                    title="Starts download for all enabled chats in the database">
-                                    Download All
+                                    title="Starts download for all enabled chats in the database"
+                                    onClick={() =>
+                                        openModal("listed-download")
+                                    }>
+                                    Download Listed Chats
                                 </button>
                                 <button
                                     className="control-btn primary"
-                                    title="Syncs all enabled chats in the database for changes and updates metadata and message counts">
-                                    Sync All
+                                    title="Syncs all enabled chats in the database"
+                                    onClick={() => handleSyncGroup("listed")}>
+                                    Sync Listed Chats
                                 </button>
                                 <button
                                     className="control-btn primary"
-                                    title="Adds all enabled chats to the final vault and for permanent storage.">
-                                    Archive All
+                                    title="Archive all enabled chats.">
+                                    Archive Listed Chats
                                 </button>
                             </>
                         )}
@@ -1061,9 +1175,8 @@ export default function ChatList({
                     useWindowScroll
                     data={processedChats}
                     itemContent={(index, chat) => {
-                        const activeStatus = getChatActiveStatus(chat.chat_id);
+                        const activeStatus = getTaskForChat(chat.chat_id);
                         const isSelected = selectedChats.has(chat.chat_id);
-
                         return (
                             <ChatRow
                                 key={chat.chat_id}
@@ -1073,6 +1186,7 @@ export default function ChatList({
                                 onSelect={handleSelectOne}
                                 onToggle={handleToggle}
                                 onDownload={onDownload}
+                                onKillTask={killTask}
                             />
                         );
                     }}
