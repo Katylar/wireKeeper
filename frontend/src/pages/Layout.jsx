@@ -1,20 +1,43 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useEngine } from "../context/WebSocketProvider";
 
 export default function Layout() {
-    const engineState = useEngine();
+    const { systemStatus, currentTask, queue, refreshSystemStatus } = useEngine();
+    const [isSwitching, setIsSwitching] = useState(false);
+
+    const activeProfile = systemStatus?.active_profile || "1";
+
+    const isBusy = Boolean(currentTask || (queue && queue.length > 0));
+
+    const handleProfileSwitch = async (e) => {
+        const newProfile = e.target.value;
+        if (newProfile === activeProfile) return;
+
+        setIsSwitching(true);
+        try {
+            await fetch(`http://localhost:39486/api/account/switch/${newProfile}`, {
+                method: "POST",
+            });
+
+            // --- NEW: Update the global state instantly without a hard reload! ---
+            if (refreshSystemStatus) {
+                await refreshSystemStatus();
+            }
+        } catch (err) {
+            console.error("Failed to switch profile:", err);
+        } finally {
+            setIsSwitching(false);
+        }
+    };
+
+    const memoizedOutlet = useMemo(() => <Outlet />, []);
 
     return (
         <div className="app-layout">
             <nav className="main-nav">
                 <div className="nav-brand">
-                    <svg
-                        width="3rem"
-                        height="3rem"
-                        viewBox="0 0 1400 1400"
-                        version="1.1"
-                        className="app-logo">
+                    <svg width="3rem" height="3rem" viewBox="0 0 1400 1400" version="1.1" className="app-logo">
                         <g transform="matrix(1,0,0,1,-80.291975,-80.291975)">
                             <g transform="matrix(0.707107,-0.707107,0.707107,0.707107,-475.317178,797.616449)">
                                 <path
@@ -37,28 +60,17 @@ export default function Layout() {
                     <span className="app-name">WireKeeper</span>
                 </div>
                 <div className="nav-links">
-                    <NavLink
-                        to="/"
-                        className={({ isActive }) =>
-                            isActive ? "active" : ""
-                        }>
+                    <NavLink to="/" className={({ isActive }) => (isActive ? "active" : "")}>
                         Chatlist
                     </NavLink>
-                    <NavLink
-                        to="/activity"
-                        className={({ isActive }) =>
-                            isActive ? "active" : ""
-                        }>
+                    <NavLink to="/activity" className={({ isActive }) => (isActive ? "active" : "")}>
                         Activity
                     </NavLink>
-                    <NavLink
-                        to="/settings"
-                        className={({ isActive }) =>
-                            isActive ? "active" : ""
-                        }>
+                    <NavLink to="/settings" className={({ isActive }) => (isActive ? "active" : "")}>
                         Settings
                     </NavLink>
                 </div>
+
                 <div
                     className="nav-status-group"
                     style={{
@@ -66,36 +78,50 @@ export default function Layout() {
                         gap: "1.5rem",
                         fontSize: "0.85rem",
                         fontWeight: "bold",
+                        alignItems: "center",
                     }}>
                     <div
                         style={{
-                            color: engineState.systemStatus?.client_connected
-                                ? "#89b4fa"
-                                : "#f9e2af",
+                            color: systemStatus?.client_connected ? "#89b4fa" : "#f9e2af",
                         }}>
-                        Engine ↔ Telegram:{" "}
-                        {engineState.systemStatus?.client_connected
-                            ? "● Authenticated"
-                            : "○ Disconnected"}
+                        Engine ↔ Telegram: {systemStatus?.client_connected ? "● Authenticated" : "○ Disconnected"}
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <span style={{ color: "#cdd6f4" }}>Profile:</span>
+                        <select
+                            value={activeProfile}
+                            onChange={handleProfileSwitch}
+                            disabled={isSwitching || !systemStatus || isBusy}
+                            title={isBusy ? "Cannot switch profiles while tasks are running in the Activity queue." : "Switch Active Account"}
+                            style={{
+                                backgroundColor: "#1e1e2e",
+                                color: "#cdd6f4",
+                                border: "1px solid #45475a",
+                                padding: "0.3rem 0.5rem",
+                                borderRadius: "4px",
+                                cursor: isSwitching || isBusy ? "not-allowed" : "pointer",
+                                fontWeight: "bold",
+                                opacity: isSwitching || isBusy ? 0.6 : 1,
+                            }}>
+                            <option value="1">Account 1</option>
+                            <option value="2">Account 2</option>
+                        </select>
                     </div>
                 </div>
+
                 <div className="controls">
                     <button>Restart</button>
                     <button>Shutdown</button>
                 </div>
             </nav>
 
-            <main className="page-content">
-                <Outlet />
-            </main>
+            <main className="page-content">{memoizedOutlet}</main>
 
             <footer>
                 <p>Copyright © 2026 Katylar. All rights reserved.</p>
                 <button>
-                    <a
-                        href="https://ko-fi.com/justin3594"
-                        target="_blank"
-                        rel="noopener noreferrer">
+                    <a href="https://ko-fi.com/justin3594" target="_blank" rel="noopener noreferrer">
                         Donate
                     </a>
                 </button>

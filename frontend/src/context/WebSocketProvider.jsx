@@ -1,11 +1,4 @@
-import React, {
-    createContext,
-    useContext,
-    useState,
-    useEffect,
-    useCallback,
-    useRef,
-} from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 
 const WS_URL = "ws://localhost:39486/ws";
 const API_BASE = "http://localhost:39486/api";
@@ -20,7 +13,6 @@ export const WebSocketProvider = ({ children }) => {
     const [activeTasks, setActiveTasks] = useState({});
     const [activeScans, setActiveScans] = useState({});
 
-    // NEW: Engine Tracking for Activity Page
     const [finishedFiles, setFinishedFiles] = useState({});
     const [taskHistory, setTaskHistory] = useState([]);
 
@@ -30,17 +22,25 @@ export const WebSocketProvider = ({ children }) => {
 
     const wsRef = useRef(null);
 
+    // --- NEW: Reusable status fetcher ---
+    const refreshSystemStatus = useCallback(async () => {
+        try {
+            const res = await fetch(`${API_BASE}/status`);
+            const data = await res.json();
+            setSystemStatus(data);
+        } catch (err) {
+            console.error("Backend offline:", err);
+        }
+    }, []);
+
     useEffect(() => {
-        fetch(`${API_BASE}/status`)
-            .then((res) => res.json())
-            .then((data) => setSystemStatus(data))
-            .catch((err) => console.error("Backend offline:", err));
+        refreshSystemStatus();
 
         fetch(`${API_BASE}/history`)
             .then((res) => res.json())
             .then((data) => setTaskHistory(data))
             .catch((err) => console.error("Failed to fetch history:", err));
-    }, []);
+    }, [refreshSystemStatus]);
 
     useEffect(() => {
         let isMounted = true;
@@ -74,10 +74,7 @@ export const WebSocketProvider = ({ children }) => {
                         });
                     }
                     data.queue.forEach((t, index) => {
-                        if (
-                            t.params?.chat_id &&
-                            !newMap.has(t.params.chat_id)
-                        ) {
+                        if (t.params?.chat_id && !newMap.has(t.params.chat_id)) {
                             newMap.set(t.params.chat_id, {
                                 ...t,
                                 status: "pending",
@@ -106,7 +103,6 @@ export const WebSocketProvider = ({ children }) => {
                             ...prev,
                             [data.chat_id]: { scanned: 0 },
                         }));
-                        // Clear finished files for this new chat run
                         setFinishedFiles((prev) => ({
                             ...prev,
                             [data.chat_id]: [],
@@ -129,17 +125,13 @@ export const WebSocketProvider = ({ children }) => {
                                 [data.chat_id]: {
                                     ...prev[data.chat_id],
                                     status: "Scan Done!",
-                                    scanned:
-                                        data.scanned !== undefined
-                                            ? data.scanned
-                                            : prev[data.chat_id].scanned,
+                                    scanned: data.scanned !== undefined ? data.scanned : prev[data.chat_id].scanned,
                                     total_queued: data.queued,
                                 },
                             };
                         });
                         break;
                     case "chat_complete":
-                        // 1. Save to History
                         setTaskHistory((prev) => [
                             ...prev,
                             {
@@ -148,7 +140,6 @@ export const WebSocketProvider = ({ children }) => {
                                 stats: data.stats,
                             },
                         ]);
-                        // 2. Cleanup active states
                         setActiveScans((prev) => {
                             const n = { ...prev };
                             delete n[data.chat_id];
@@ -170,9 +161,7 @@ export const WebSocketProvider = ({ children }) => {
                                 queue_info: data.queue_info,
                                 progress: 0,
                                 speed: 0,
-                                type: data.queue_info.includes("heavy")
-                                    ? "heavy"
-                                    : "light",
+                                type: data.queue_info.includes("heavy") ? "heavy" : "light",
                             },
                         }));
                         break;
@@ -183,8 +172,7 @@ export const WebSocketProvider = ({ children }) => {
                                 ...prev,
                                 [data.file_id]: {
                                     ...prev[data.file_id],
-                                    progress:
-                                        (data.downloaded / data.total) * 100,
+                                    progress: (data.downloaded / data.total) * 100,
                                     speed: data.speed,
                                     downloaded: data.downloaded,
                                     total: data.total,
@@ -199,21 +187,11 @@ export const WebSocketProvider = ({ children }) => {
                             const finishedTask = newState[data.file_id];
                             delete newState[data.file_id];
 
-                            // Move to finished files list instead of deleting into the void
                             if (finishedTask) {
                                 setFinishedFiles((prevFinished) => {
-                                    const currentList =
-                                        prevFinished[finishedTask.chat_id] ||
-                                        [];
+                                    const currentList = prevFinished[finishedTask.chat_id] || [];
 
-                                    // FIX: Stop React StrictMode from double-pushing files!
-                                    if (
-                                        currentList.some(
-                                            (f) =>
-                                                f.file_id ===
-                                                finishedTask.file_id,
-                                        )
-                                    ) {
+                                    if (currentList.some((f) => f.file_id === finishedTask.file_id)) {
                                         return prevFinished;
                                     }
 
@@ -222,8 +200,7 @@ export const WebSocketProvider = ({ children }) => {
                                         [finishedTask.chat_id]: [
                                             {
                                                 ...finishedTask,
-                                                final_status:
-                                                    data.status || "error",
+                                                final_status: data.status || "error",
                                                 error_msg: data.error,
                                             },
                                             ...currentList,
@@ -251,10 +228,7 @@ export const WebSocketProvider = ({ children }) => {
         };
     }, []);
 
-    const getTaskForChat = useCallback(
-        (chatId) => taskMap.get(chatId) || null,
-        [taskMap],
-    );
+    const getTaskForChat = useCallback((chatId) => taskMap.get(chatId) || null, [taskMap]);
 
     const killTask = async (taskId) => {
         await fetch(`${API_BASE}/queue/${taskId}`, { method: "DELETE" });
@@ -269,7 +243,7 @@ export const WebSocketProvider = ({ children }) => {
 
     const clearHistory = async () => {
         await fetch(`${API_BASE}/history`, { method: "DELETE" });
-        setTaskHistory([]); // Instantly wipe the UI without waiting for a reload
+        setTaskHistory([]);
     };
 
     return (
@@ -277,6 +251,7 @@ export const WebSocketProvider = ({ children }) => {
             value={{
                 isConnected,
                 systemStatus,
+                refreshSystemStatus, // --- NEW: Exported ---
                 logs,
                 activeTasks,
                 activeScans,

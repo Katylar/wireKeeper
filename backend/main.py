@@ -20,7 +20,6 @@ from orchestrator import queue_manager
 telegram_client = None
 db_pool = None
 
-# --- NEW: Expanded Data Model to handle 2 profiles natively ---
 class SettingsUpdate(BaseModel):
     active_profile: Optional[str] = None
     profile_1_api_id: Optional[str] = None
@@ -51,7 +50,12 @@ class MultiChatRequest(BaseModel):
     validate_mode: Optional[bool] = False
     resume: Optional[bool] = True
 
-# --- NEW: Reusable Bootloader for Telethon ---
+# --- NEW: Safe API ID Fetcher for DB Scoping ---
+async def get_active_api_id():
+    settings = await get_settings_dict(db_pool)
+    active_prof = settings.get('active_profile', '1')
+    return settings.get(f'profile_{active_prof}_api_id')
+
 async def startup_telethon(db):
     global telegram_client
     settings = await get_settings_dict(db)
@@ -82,19 +86,30 @@ async def lifespan(app: FastAPI):
     await db_pool.execute('''
         CREATE TABLE IF NOT EXISTS activity_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            api_id TEXT,
             timestamp TEXT,
             chat_id INTEGER,
             stats TEXT
         )
     ''')
+    
+    await db_pool.execute('''
+        CREATE TABLE IF NOT EXISTS archivings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            api_id TEXT,
+            chat_id INTEGER,
+            chat_name TEXT,
+            files_moved INTEGER,
+            status TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            details TEXT
+        )
+    ''')
+    
     await db_pool.commit()
     
-    # Init Telethon using the current active profile
     await startup_telethon(db_pool)
-    
-    # Boot the Orchestrator loop
     asyncio.create_task(queue_manager.worker_loop())
-    
     yield
     
     if telegram_client: await telegram_client.disconnect()
@@ -119,7 +134,6 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
-# --- NEW: Account Switcher Endpoint ---
 @app.post("/api/account/switch/{profile_id}")
 async def switch_profile(profile_id: str):
     global telegram_client
@@ -128,34 +142,37 @@ async def switch_profile(profile_id: str):
 
     await manager.broadcast({"event": "log", "message": f"Switching to Profile {profile_id}..."})
 
-    # 1. Brutally purge all active and pending downloads
     await queue_manager.wipe_all()
 
-    # 2. Disconnect existing Telethon Client gracefully
     if telegram_client and telegram_client.is_connected():
         await telegram_client.disconnect()
 
-    # 3. Update active profile state in DB
     await update_setting(db_pool, 'active_profile', profile_id)
 
-    # 4. Boot up the new client
     success = await startup_telethon(db_pool)
     
     status_msg = f"Profile {profile_id} active and connected." if success else f"Profile {profile_id} active (Needs setup)."
     await manager.broadcast({"event": "log", "message": status_msg})
     
+    if success:
+        queue_manager.add_task("sync-all", {"chat_name": f"Profile {profile_id} Auto-Sync"})
+    
     return {"status": "Profile switched", "connected": success}
 
 @app.get("/api/chats")
 async def get_chats():
+    api_id = await get_active_api_id()
+    if not api_id: return []
+    
     query = """
         SELECT 
             chat_id, chat_name, chat_type, total_messages, is_batch,
             old_name, last_download_scan, last_message_id, topics, topics_exclude, 
             last_archived, total_downloaded, enabled, hidden, defer, total_size, last_download, date_updated, chat_status
         FROM chat_list
+        WHERE api_id = ?
     """
-    async with db_pool.execute(query) as cursor:
+    async with db_pool.execute(query, (api_id,)) as cursor:
         rows = await cursor.fetchall()
         
         result = []
@@ -206,11 +223,12 @@ async def toggle_chat_flags(req: ToggleRequest):
     if req.field not in allowed_fields:
         raise HTTPException(status_code=400, detail="Invalid field")
 
+    api_id = await get_active_api_id()
     val = 1 if req.value else 0
     placeholders = ",".join("?" for _ in req.chat_ids)
-    query = f"UPDATE chat_list SET {req.field} = ? WHERE chat_id IN ({placeholders})"
+    query = f"UPDATE chat_list SET {req.field} = ? WHERE api_id = ? AND chat_id IN ({placeholders})"
     
-    params = [val] + req.chat_ids
+    params = [val, api_id] + req.chat_ids
     
     try:
         async with db_pool.execute(query, params) as cursor:
@@ -225,9 +243,10 @@ async def sync_multiple(req: MultiChatRequest):
     task_ids = []
     if not req.chat_ids: return {"status": "No chats provided"}
     
+    api_id = await get_active_api_id()
     placeholders = ",".join("?" for _ in req.chat_ids)
-    query = f"SELECT chat_id, chat_name FROM chat_list WHERE chat_id IN ({placeholders})"
-    async with db_pool.execute(query, req.chat_ids) as cursor:
+    query = f"SELECT chat_id, chat_name FROM chat_list WHERE api_id = ? AND chat_id IN ({placeholders})"
+    async with db_pool.execute(query, [api_id] + req.chat_ids) as cursor:
         name_map = {r[0]: r[1] for r in await cursor.fetchall()}
 
     for cid in req.chat_ids:
@@ -245,9 +264,10 @@ async def download_multiple(req: MultiChatRequest):
     task_ids = []
     if not req.chat_ids: return {"status": "No chats provided"}
     
+    api_id = await get_active_api_id()
     placeholders = ",".join("?" for _ in req.chat_ids)
-    query = f"SELECT chat_id, chat_name FROM chat_list WHERE chat_id IN ({placeholders})"
-    async with db_pool.execute(query, req.chat_ids) as cursor:
+    query = f"SELECT chat_id, chat_name FROM chat_list WHERE api_id = ? AND chat_id IN ({placeholders})"
+    async with db_pool.execute(query, [api_id] + req.chat_ids) as cursor:
         name_map = {r[0]: r[1] for r in await cursor.fetchall()}
 
     for cid in req.chat_ids:
@@ -270,7 +290,8 @@ async def trigger_sync():
 
 @app.post("/api/sync/{chat_id}")
 async def trigger_chat_sync(chat_id: int):
-    async with db_pool.execute("SELECT chat_name FROM chat_list WHERE chat_id = ?", (chat_id,)) as cursor:
+    api_id = await get_active_api_id()
+    async with db_pool.execute("SELECT chat_name FROM chat_list WHERE api_id = ? AND chat_id = ?", (api_id, chat_id)) as cursor:
         row = await cursor.fetchone()
         chat_name = row[0] if row else str(chat_id)
         
@@ -279,7 +300,8 @@ async def trigger_chat_sync(chat_id: int):
 
 @app.post("/api/download/{chat_id}")
 async def start_download(chat_id: int, overwrite: bool = False, validate: bool = False, resume: bool = True):
-    async with db_pool.execute("SELECT chat_name FROM chat_list WHERE chat_id = ?", (chat_id,)) as cursor:
+    api_id = await get_active_api_id()
+    async with db_pool.execute("SELECT chat_name FROM chat_list WHERE api_id = ? AND chat_id = ?", (api_id, chat_id)) as cursor:
         row = await cursor.fetchone()
         chat_name = row[0] if row else str(chat_id)
         
@@ -290,15 +312,16 @@ async def start_download(chat_id: int, overwrite: bool = False, validate: bool =
 
 @app.get("/api/chat/{chat_id}/files")
 async def get_chat_files(chat_id: int):
+    api_id = await get_active_api_id()
     query = """
         SELECT message_id, final_filename, original_filename, file_size, file_path, timestamp 
         FROM downloads 
-        WHERE chat_id = ? AND status = 'success'
+        WHERE api_id = ? AND chat_id = ? AND status = 'success'
         ORDER BY message_id DESC
     """
     
     try:
-        async with db_pool.execute(query, (chat_id,)) as cursor:
+        async with db_pool.execute(query, (api_id, chat_id)) as cursor:
             rows = await cursor.fetchall()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
@@ -339,7 +362,7 @@ async def get_chat_files(chat_id: int):
 
 @app.post("/api/batch/start")
 async def start_batch(overwrite: bool = False, validate: bool = False, resume: bool = True, sort: str = "default"):
-    
+    api_id = await get_active_api_id()
     order_mapping = {
         "default": "ORDER BY defer ASC, total_messages ASC",
         "chat_id_asc": "ORDER BY chat_id ASC",
@@ -351,9 +374,9 @@ async def start_batch(overwrite: bool = False, validate: bool = False, resume: b
     }
     sql_order = order_mapping.get(sort, order_mapping["default"])
     
-    query = f"SELECT chat_id, chat_name FROM chat_list WHERE is_batch = 1 AND enabled = 1 AND chat_status = 1 {sql_order}"
+    query = f"SELECT chat_id, chat_name FROM chat_list WHERE api_id = ? AND is_batch = 1 AND enabled = 1 AND chat_status = 1 {sql_order}"
     
-    async with db_pool.execute(query) as cursor:
+    async with db_pool.execute(query, (api_id,)) as cursor:
         batch_targets = await cursor.fetchall()
         
     if not batch_targets:
@@ -429,7 +452,8 @@ async def save_settings(settings: SettingsUpdate):
 
 @app.get("/api/history")
 async def get_activity_history():
-    async with db_pool.execute("SELECT timestamp, chat_id, stats FROM activity_history ORDER BY id ASC") as cursor:
+    api_id = await get_active_api_id()
+    async with db_pool.execute("SELECT timestamp, chat_id, stats FROM activity_history WHERE api_id = ? ORDER BY id ASC", (api_id,)) as cursor:
         rows = await cursor.fetchall()
         history = []
         for r in rows:
@@ -442,7 +466,8 @@ async def get_activity_history():
 
 @app.delete("/api/history")
 async def clear_activity_history():
-    await db_pool.execute("DELETE FROM activity_history")
+    api_id = await get_active_api_id()
+    await db_pool.execute("DELETE FROM activity_history WHERE api_id = ?", (api_id,))
     await db_pool.commit()
     return {"status": "History cleared."}
     

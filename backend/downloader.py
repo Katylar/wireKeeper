@@ -45,7 +45,7 @@ class WorkerStatus:
         self.downloaded_bytes = 0
         self.type = w_type 
 
-async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mode, worker_status, app_settings, pause_event):
+async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mode, worker_status, app_settings, pause_event, api_id):
     retries_str = app_settings.get('max_retries', '3')
     max_retries = int(retries_str) if str(retries_str).isdigit() else 3
     
@@ -66,7 +66,7 @@ async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mod
         if os.path.exists(final_path):
             is_valid, _ = check_file_size_integrity(final_path, expected_size, current_filename)
             if is_valid and not overwrite_mode:
-                await db_update_status(conn, unique_id, chat_id, message_id, 'success', final_path, original_name, current_filename, expected_size, topic_id)
+                await db_update_status(conn, api_id, unique_id, chat_id, message_id, 'success', final_path, original_name, current_filename, expected_size, topic_id)
                 stats['successful_downloads'] += 1
                 stats['categories'][file_category]['success'] += 1
                 return
@@ -77,7 +77,7 @@ async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mod
         if alt_path and os.path.exists(alt_path) and not overwrite_mode:
             is_valid_alt, _ = check_file_size_integrity(alt_path, expected_size, current_filename)
             if is_valid_alt:
-                await db_update_status(conn, unique_id, chat_id, message_id, 'success', alt_path, original_name, current_filename, expected_size, topic_id)
+                await db_update_status(conn, api_id, unique_id, chat_id, message_id, 'success', alt_path, original_name, current_filename, expected_size, topic_id)
                 stats['successful_downloads'] += 1
                 stats['categories'][file_category]['success'] += 1
                 return
@@ -158,11 +158,11 @@ async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mod
                       except: pass
                       raise Exception(f"Integrity check failed: {reason}")
                 
-                await db_update_status(conn, unique_id, chat_id, message_id, 'success', final_path, original_name, current_filename, expected_size, topic_id)
+                await db_update_status(conn, api_id, unique_id, chat_id, message_id, 'success', final_path, original_name, current_filename, expected_size, topic_id)
                 stats['successful_downloads'] += 1
                 stats['categories'][file_category]['success'] += 1
 
-                await conn.execute("UPDATE chat_list SET last_download = CURRENT_TIMESTAMP WHERE chat_id = ?", (chat_id,))
+                await conn.execute("UPDATE chat_list SET last_download = CURRENT_TIMESTAMP WHERE api_id = ? AND chat_id = ?", (api_id, chat_id))
                 await conn.commit()
 
                 await manager.broadcast({"event": "task_complete", "file_id": unique_id, "status": "success"})
@@ -187,12 +187,12 @@ async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mod
                     pause_event.set()
                     wait_time = getattr(e, 'seconds', 60) * attempt 
                     await manager.broadcast({"event": "error", "message": f"Network Throttle. Pausing system for {wait_time}s."})
-                    await db_update_status(conn, unique_id, chat_id, message_id, 'queued', topic_id=topic_id)
+                    await db_update_status(conn, api_id, unique_id, chat_id, message_id, 'queued', topic_id=topic_id)
                     await asyncio.sleep(wait_time)
                     if attempt < max_retries: continue
 
                 if attempt == max_retries:
-                    await db_update_status(conn, unique_id, chat_id, message_id, 'failed', topic_id=topic_id)
+                    await db_update_status(conn, api_id, unique_id, chat_id, message_id, 'failed', topic_id=topic_id)
                     stats['failed_downloads'] += 1
                     stats['categories'][file_category]['failed'] += 1
                     await manager.broadcast({"event": "task_error", "file_id": unique_id, "error": str(e)})
@@ -203,7 +203,7 @@ async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mod
     finally:
         queue.task_done()
 
-async def execute_rename_logic(conn, chat_id, db_chat_name, new_chat_title, app_settings):
+async def execute_rename_logic(conn, api_id, chat_id, db_chat_name, new_chat_title, app_settings):
     norm_old = normalize_name(db_chat_name)
     norm_new = normalize_name(new_chat_title)
     if norm_old == norm_new: return
@@ -240,9 +240,9 @@ async def execute_rename_logic(conn, chat_id, db_chat_name, new_chat_title, app_
                 REPLACE(file_path, '\\' || ?, '\\' || ?), 
                 '/' || ?, '/' || ?
             )
-            WHERE chat_id = ?
+            WHERE api_id = ? AND chat_id = ?
         """
-        await conn.execute(query, (old_folder, new_folder, old_folder, new_folder, chat_id))
+        await conn.execute(query, (old_folder, new_folder, old_folder, new_folder, api_id, chat_id))
         await conn.commit()
     except Exception as e:
         await manager.broadcast({"event": "error", "message": f"Failed to update database paths for rename: {e}"})
@@ -250,9 +250,13 @@ async def execute_rename_logic(conn, chat_id, db_chat_name, new_chat_title, app_
 async def sync_chatlist(client, conn):
     await manager.broadcast({"event": "log", "message": "Processing chat list (Syncing with DB)..."})
     app_settings = await get_settings_dict(conn)
+    
+    active_prof = app_settings.get('active_profile', '1')
+    api_id = app_settings.get(f'profile_{active_prof}_api_id')
+
     db_chats = {}
     try:
-        async with conn.execute("SELECT chat_id, chat_name, date_added, old_name, is_batch, last_message_id, total_downloaded FROM chat_list") as cursor:
+        async with conn.execute("SELECT chat_id, chat_name, date_added, old_name, is_batch, last_message_id, total_downloaded FROM chat_list WHERE api_id = ?", (api_id,)) as cursor:
             rows = await cursor.fetchall()
             for row in rows: 
                 db_chats[row[0]] = {
@@ -290,7 +294,7 @@ async def sync_chatlist(client, conn):
         old_name = db_chats[chat_id]['old_name'] if chat_id in db_chats else None
         if chat_id in db_chats and db_chats[chat_id]['chat_name'] != current_name:
             old_name = db_chats[chat_id]['chat_name']
-            await execute_rename_logic(conn, chat_id, old_name, current_name, app_settings)
+            await execute_rename_logic(conn, api_id, chat_id, old_name, current_name, app_settings)
             
         date_added = db_chats[chat_id]['date_added'] if chat_id in db_chats else current_time
 
@@ -305,15 +309,15 @@ async def sync_chatlist(client, conn):
         chat_status_val = 0 if is_history_wiped else 1
 
         await conn.execute('''
-            INSERT INTO chat_list (chat_id, chat_name, chat_type, total_messages, is_batch, date_added, date_updated, old_name, topics, chat_status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(chat_id) DO UPDATE SET
+            INSERT INTO chat_list (api_id, chat_id, chat_name, chat_type, total_messages, is_batch, date_added, date_updated, old_name, topics, chat_status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(api_id, chat_id) DO UPDATE SET
                 chat_name = excluded.chat_name, chat_type = excluded.chat_type, total_messages = excluded.total_messages,
                 is_batch = excluded.is_batch, date_updated = excluded.date_updated, old_name = excluded.old_name, topics = excluded.topics, chat_status = excluded.chat_status
-        ''', (chat_id, current_name, c_type, total_messages, 1 if is_batch else 0, date_added, current_time, old_name, topics_json, chat_status_val))
+        ''', (api_id, chat_id, current_name, c_type, total_messages, 1 if is_batch else 0, date_added, current_time, old_name, topics_json, chat_status_val))
 
         if is_history_wiped:
-            await conn.execute("UPDATE chat_list SET enabled = 0 WHERE chat_id = ?", (chat_id,))
+            await conn.execute("UPDATE chat_list SET enabled = 0 WHERE api_id = ? AND chat_id = ?", (api_id, chat_id))
 
     db_chat_ids = set(db_chats.keys())
     dead_chat_ids = db_chat_ids - seen_chat_ids
@@ -324,34 +328,41 @@ async def sync_chatlist(client, conn):
         await conn.execute(f'''
             UPDATE chat_list 
             SET chat_status = 0, enabled = 0 
-            WHERE chat_id IN ({placeholders})
-        ''', dead_list)
+            WHERE api_id = ? AND chat_id IN ({placeholders})
+        ''', [api_id] + dead_list)
         await manager.broadcast({"event": "log", "message": f"Auto-disabled {len(dead_chat_ids)} inaccessible/ghost chats."})
 
     await conn.commit()
-    await update_total_downloaded(conn)
+    await update_total_downloaded(conn, api_id)
     await manager.broadcast({"event": "log", "message": "Database Updated."})
 
 async def sync_single_chat(client, conn, chat_id):
+    app_settings = await get_settings_dict(conn)
+    active_prof = app_settings.get('active_profile', '1')
+    api_id = app_settings.get(f'profile_{active_prof}_api_id')
+    
     try:
         entity = await client.get_entity(chat_id)
         current_name = utils.get_display_name(entity)
         
         topics_json = None
         if getattr(entity, 'forum', False):
-            result = await client(GetForumTopicsRequest(channel=entity, offset_date=None, offset_id=0, offset_topic=0, limit=100))
-            topics_list = [{"id": t.id, "title": t.title} for t in result.topics]
-            topics_json = json.dumps(topics_list, ensure_ascii=False)
+            try:
+                result = await client(GetForumTopicsRequest(channel=entity, offset_date=None, offset_id=0, offset_topic=0, limit=100))
+                topics_list = [{"id": t.id, "title": t.title} for t in result.topics]
+                topics_json = json.dumps(topics_list, ensure_ascii=False)
+            except Exception as e:
+                print(f"Skipping forum fetch due to error: {e}")
 
         await conn.execute('''
             UPDATE chat_list 
             SET chat_name = ?, topics = ?, date_updated = CURRENT_TIMESTAMP, chat_status = 1
-            WHERE chat_id = ?
-        ''', (current_name, topics_json, chat_id))
+            WHERE api_id = ? AND chat_id = ?
+        ''', (current_name, topics_json, api_id, chat_id))
         await conn.commit()
     except Exception as e:
         await manager.broadcast({"event": "log", "message": f"Sync failed for {chat_id}: {e}. Marking as dead."})
-        await conn.execute("UPDATE chat_list SET chat_status = 0, enabled = 0 WHERE chat_id = ?", (chat_id,))
+        await conn.execute("UPDATE chat_list SET chat_status = 0, enabled = 0 WHERE api_id = ? AND chat_id = ?", (api_id, chat_id))
         await conn.commit()
 
 async def process_chat_download(client, conn, chat_id, overwrite_mode=False, validate_mode=False, resume_mode=True, batch_id=None, batch_index=None, batch_total=None):
@@ -362,6 +373,9 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
     task_status = "completed"
     
     app_settings = await get_settings_dict(conn)
+    active_prof = app_settings.get('active_profile', '1')
+    api_id = app_settings.get(f'profile_{active_prof}_api_id')
+    
     downloads_dir = app_settings.get('download_path', 'downloads')
     alt_downloads_dir = app_settings.get('alt_download_path', '')
     
@@ -404,25 +418,25 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
             try: total_messages = (await client.get_messages(entity, limit=0)).total
             except: total_messages = 0
 
-            async with conn.execute("SELECT chat_name, old_name, last_message_id, total_downloaded FROM chat_list WHERE chat_id = ?", (chat_id,)) as cursor:
+            async with conn.execute("SELECT chat_name, old_name, last_message_id, total_downloaded FROM chat_list WHERE api_id = ? AND chat_id = ?", (api_id, chat_id)) as cursor:
                 row = await cursor.fetchone()
                 if not row:
-                    await conn.execute("INSERT INTO chat_list (chat_id, chat_name, date_added, date_updated, chat_status) VALUES (?, ?, ?, ?, 1)", 
-                                       (chat_id, chat_title, datetime.now(), datetime.now()))
+                    await conn.execute("INSERT INTO chat_list (api_id, chat_id, chat_name, date_added, date_updated, chat_status) VALUES (?, ?, ?, ?, ?, 1)", 
+                                       (api_id, chat_id, chat_title, datetime.now(), datetime.now()))
                 else:
                     db_chat_name, db_old_name, db_last_msg_id, db_total_dl = row
                     new_old_name = db_old_name
                     
                     if db_chat_name and db_chat_name != chat_title:
                         new_old_name = db_chat_name
-                        await execute_rename_logic(conn, chat_id, db_chat_name, chat_title, app_settings)
+                        await execute_rename_logic(conn, api_id, chat_id, db_chat_name, chat_title, app_settings)
                     
                     if total_messages == 0 and ((db_last_msg_id or 0) > 0 or (db_total_dl or 0) > 0):
                         await conn.execute("""
                             UPDATE chat_list 
                             SET chat_name = ?, old_name = ?, chat_status = 0, enabled = 0, total_messages = ?, date_updated = CURRENT_TIMESTAMP
-                            WHERE chat_id = ?
-                        """, (chat_title, new_old_name, db_last_msg_id, chat_id))
+                            WHERE api_id = ? AND chat_id = ?
+                        """, (chat_title, new_old_name, db_last_msg_id, api_id, chat_id))
                         await conn.commit()
                         await manager.broadcast({"event": "log", "message": f"Chat history wiped for {chat_title}. Marking as dead."})
                         return stats
@@ -430,13 +444,13 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
                     await conn.execute("""
                         UPDATE chat_list 
                         SET chat_name = ?, old_name = ?, chat_status = 1, date_updated = CURRENT_TIMESTAMP
-                        WHERE chat_id = ?
-                    """, (chat_title, new_old_name, chat_id))
+                        WHERE api_id = ? AND chat_id = ?
+                    """, (chat_title, new_old_name, api_id, chat_id))
             await conn.commit()
                 
         except Exception as e:
             await manager.broadcast({"event": "log", "message": f"Error fetching chat {chat_id}: {e}. Marking as dead."})
-            await conn.execute("UPDATE chat_list SET chat_status = 0, enabled = 0 WHERE chat_id = ?", (chat_id,))
+            await conn.execute("UPDATE chat_list SET chat_status = 0, enabled = 0 WHERE api_id = ? AND chat_id = ?", (api_id, chat_id))
             await conn.commit()
             return stats
 
@@ -450,8 +464,8 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
             alt_base = os.path.join(alt_downloads_dir, f"[{chat_id}]_{norm_name}")
             alt_folders = {k: os.path.join(alt_base, k) for k in ['images', 'videos', 'archives', 'misc', 'audio']}
 
-        excluded_topics = await db_get_topic_exclusions(conn, chat_id)
-        last_read_id = 0 if validate_mode else await get_last_message_id(conn, chat_id)
+        excluded_topics = await db_get_topic_exclusions(conn, api_id, chat_id)
+        last_read_id = 0 if validate_mode else await get_last_message_id(conn, api_id, chat_id)
         
         await manager.broadcast({
             "event": "scan_start", 
@@ -515,10 +529,10 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
                 category = get_file_category(message, final_filename)
                 if category: 
                     target_path = os.path.join(folders[category], final_filename)
-                    unique_id = f"{chat_id}_{message.id}"
+                    unique_id = f"{api_id}_{chat_id}_{message.id}"
                     alt_target_path = os.path.join(alt_folders[category], final_filename) if alt_folders else None
                     
-                    status = await db_check_existing(conn, chat_id, message.id)
+                    status = await db_check_existing(conn, api_id, chat_id, message.id)
                     if status != 'success':
                         expected_size = get_msg_file_size(message)
                         file_found_on_disk = False
@@ -527,13 +541,13 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
                             is_valid, _ = check_file_size_integrity(target_path, expected_size, final_filename)
                             if is_valid and not overwrite_mode:
                                 file_found_on_disk = True
-                                await db_update_status(conn, unique_id, chat_id, message.id, 'success', target_path, original_filename, final_filename, expected_size, msg_topic_id)
+                                await db_update_status(conn, api_id, unique_id, chat_id, message.id, 'success', target_path, original_filename, final_filename, expected_size, msg_topic_id)
                         
                         if not file_found_on_disk and alt_target_path and os.path.exists(alt_target_path):
                             is_valid, _ = check_file_size_integrity(alt_target_path, expected_size, final_filename)
                             if is_valid and not overwrite_mode:
                                 file_found_on_disk = True
-                                await db_update_status(conn, unique_id, chat_id, message.id, 'success', alt_target_path, original_filename, final_filename, expected_size, msg_topic_id)
+                                await db_update_status(conn, api_id, unique_id, chat_id, message.id, 'success', alt_target_path, original_filename, final_filename, expected_size, msg_topic_id)
 
                         if file_found_on_disk: 
                             stats['skipped_downloads'] += 1
@@ -543,7 +557,7 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
                             stats['total_queued'] += 1
                             stats['categories'][category]['enqueued'] += 1
                             
-                            await db_update_status(conn, unique_id, chat_id, message.id, 'queued', target_path, original_filename, final_filename, expected_size, msg_topic_id)
+                            await db_update_status(conn, api_id, unique_id, chat_id, message.id, 'queued', target_path, original_filename, final_filename, expected_size, msg_topic_id)
                             temp_download_list.append({
                                 'data': (message, target_path, unique_id, chat_id, message.id, original_filename, final_filename, expected_size, alt_target_path),
                                 'category': category
@@ -552,9 +566,9 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
                         stats['skipped_downloads'] += 1
                         stats['categories'][category]['skipped'] += 1
 
-        if highest_scanned_id > last_read_id: await update_cursor(conn, chat_id, highest_scanned_id)
+        if highest_scanned_id > last_read_id: await update_cursor(conn, api_id, chat_id, highest_scanned_id)
 
-        incomplete_ids = await db_get_incomplete(conn, chat_id)
+        incomplete_ids = await db_get_incomplete(conn, api_id, chat_id)
         ids_to_fetch = list(incomplete_ids - scanned_ids_in_session)
         
         if ids_to_fetch:
@@ -571,14 +585,14 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
                     category = get_file_category(message, final_filename)
                     if category:
                         target_path = os.path.join(folders[category], final_filename)
-                        unique_id = f"{chat_id}_{message.id}"
+                        unique_id = f"{api_id}_{chat_id}_{message.id}"
                         expected_size = get_msg_file_size(message)
                         alt_target_path = os.path.join(alt_folders[category], final_filename) if alt_folders else None
                         
                         stats['total_queued'] += 1
                         stats['categories'][category]['enqueued'] += 1
                         
-                        await db_update_status(conn, unique_id, chat_id, message.id, 'queued', target_path, original_filename, final_filename, expected_size, msg_incomplete_topic_id)
+                        await db_update_status(conn, api_id, unique_id, chat_id, message.id, 'queued', target_path, original_filename, final_filename, expected_size, msg_incomplete_topic_id)
                         temp_download_list.append({
                             'data': (message, target_path, unique_id, chat_id, message.id, original_filename, final_filename, expected_size, alt_target_path),
                             'category': category
@@ -610,7 +624,7 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
                 with open(msg_file, 'w', encoding='utf-8') as f:
                     json.dump(combined, f, indent=4, ensure_ascii=False)
 
-        await update_total_downloaded(conn, chat_id)
+        await update_total_downloaded(conn, api_id, chat_id)
 
         total_downloads_needed = len(temp_download_list)
         await manager.broadcast({"event": "scan_complete", "chat_id": chat_id, "scanned": stats['total_messages_scanned'], "queued": total_downloads_needed})
@@ -640,12 +654,12 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
                     
                     if not queue_heavy.empty() and should_spawn_smart(active_heavy, max_concurrent_heavy, speed_threshold_bytes, pause_event):
                         new_status = WorkerStatus(w_type="heavy")
-                        new_task = asyncio.create_task(download_worker(client, conn, queue_heavy, stats, overwrite_mode, resume_mode, new_status, app_settings, pause_event))
+                        new_task = asyncio.create_task(download_worker(client, conn, queue_heavy, stats, overwrite_mode, resume_mode, new_status, app_settings, pause_event, api_id))
                         active_heavy.append((new_task, new_status))
                     
                     if not queue_light.empty() and len(active_light) < max_concurrent_light:
                         new_status = WorkerStatus(w_type="light")
-                        new_task = asyncio.create_task(download_worker(client, conn, queue_light, stats, overwrite_mode, resume_mode, new_status, app_settings, pause_event))
+                        new_task = asyncio.create_task(download_worker(client, conn, queue_light, stats, overwrite_mode, resume_mode, new_status, app_settings, pause_event, api_id))
                         active_light.append((new_task, new_status))
                     
                     await asyncio.sleep(0.5)
@@ -659,10 +673,9 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
         if alt_folders:
             total_bytes += await asyncio.to_thread(get_dir_size, alt_base)
             
-        await conn.execute("UPDATE chat_list SET total_size = ? WHERE chat_id = ?", (total_bytes, chat_id))
+        await conn.execute("UPDATE chat_list SET total_size = ? WHERE api_id = ? AND chat_id = ?", (total_bytes, api_id, chat_id))
         await conn.commit()
 
-        # Clean up safely (only if truly empty)
         for p in folders.values():
             if os.path.exists(p) and not os.listdir(p):
                 try: os.rmdir(p)
@@ -690,7 +703,7 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
         elapsed = time.time() - start_time_sec
         
         try:
-            async with conn.execute("SELECT total_messages, last_message_id FROM chat_list WHERE chat_id = ?", (chat_id,)) as cursor:
+            async with conn.execute("SELECT total_messages, last_message_id FROM chat_list WHERE api_id = ? AND chat_id = ?", (api_id, chat_id)) as cursor:
                 row = await cursor.fetchone()
                 total_msgs = row[0] if row else 0
                 last_msg_id = row[1] if row else 0
@@ -711,7 +724,7 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
         
         time_str = end_time_dt.strftime("%I:%M:%S %p")
         try:
-            await conn.execute("INSERT INTO activity_history (timestamp, chat_id, stats) VALUES (?, ?, ?)", (time_str, chat_id, json.dumps(history_data)))
+            await conn.execute("INSERT INTO activity_history (api_id, timestamp, chat_id, stats) VALUES (?, ?, ?, ?)", (api_id, time_str, chat_id, json.dumps(history_data)))
             await conn.commit()
         except Exception as db_e:
             print(f"Failed to save history: {db_e}")
@@ -737,10 +750,14 @@ async def process_batch_download(client, conn, overwrite_mode=False, validate_mo
     
     sql_order = order_mapping.get(sort_order, order_mapping["default"])
     
+    app_settings = await get_settings_dict(conn)
+    active_prof = app_settings.get('active_profile', '1')
+    api_id = app_settings.get(f'profile_{active_prof}_api_id')
+    
     await manager.broadcast({"event": "log", "message": f"[DB] Fetching batch list from database (Sort: {sort_order})..."})
     
-    query = f"SELECT chat_id, chat_name FROM chat_list WHERE is_batch = 1 AND enabled = 1 AND chat_status = 1 {sql_order}"
-    async with conn.execute(query) as cursor:
+    query = f"SELECT chat_id, chat_name FROM chat_list WHERE api_id = ? AND is_batch = 1 AND enabled = 1 AND chat_status = 1 {sql_order}"
+    async with conn.execute(query, (api_id,)) as cursor:
         batch_targets = await cursor.fetchall()
         
     if not batch_targets:
