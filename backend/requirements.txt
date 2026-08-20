@@ -1,7 +1,7 @@
 fastapi
 uvicorn
 websockets
-telethon
+telethon>=1.36.0
 aiosqlite
 unidecode
 cryptg

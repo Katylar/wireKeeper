@@ -1,0 +1,18 @@
+services:
+    backend:
+        build: ./backend
+        ports:
+            - "39486:39486"
+        volumes:
+            - ./backend:/app # Keeps live-reload working
+        env_file:
+            - ./backend/.env
+
+    frontend:
+        build: ./frontend
+        ports:
+            - "13168:13168"
+        volumes:
+            - ./frontend:/app # Keeps live-reload working
+            - /app/node_modules
+        command: npm run dev

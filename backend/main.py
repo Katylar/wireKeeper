@@ -17,14 +17,19 @@ from downloader import process_chat_download, sync_chatlist, sync_single_chat, p
 from utils import normalize_name
 from orchestrator import queue_manager
 
-
 telegram_client = None
 db_pool = None
 
+# --- NEW: Expanded Data Model to handle 2 profiles natively ---
 class SettingsUpdate(BaseModel):
-    api_id: Optional[str] = None
-    api_hash: Optional[str] = None
-    session_name: Optional[str] = None
+    active_profile: Optional[str] = None
+    profile_1_api_id: Optional[str] = None
+    profile_1_api_hash: Optional[str] = None
+    profile_1_session_name: Optional[str] = None
+    profile_2_api_id: Optional[str] = None
+    profile_2_api_hash: Optional[str] = None
+    profile_2_session_name: Optional[str] = None
+    
     download_path: Optional[str] = None
     alt_download_path: Optional[str] = None
     max_concurrent_heavy: Optional[str] = None
@@ -46,12 +51,34 @@ class MultiChatRequest(BaseModel):
     validate_mode: Optional[bool] = False
     resume: Optional[bool] = True
 
+# --- NEW: Reusable Bootloader for Telethon ---
+async def startup_telethon(db):
+    global telegram_client
+    settings = await get_settings_dict(db)
+    
+    active_prof = settings.get('active_profile', '1')
+    api_id = settings.get(f'profile_{active_prof}_api_id')
+    api_hash = settings.get(f'profile_{active_prof}_api_hash')
+    session_name = settings.get(f'profile_{active_prof}_session_name', f'wirekeeper_session_{active_prof}')
+    
+    if api_id and api_hash:
+        try:
+            telegram_client = TelegramClient(session_name, int(api_id), api_hash, connection=ConnectionTcpAbridged)
+            await telegram_client.start()
+            print(f"WireKeeper Engine Started Successfully (Active Profile: {active_prof}).")
+            queue_manager.initialize(telegram_client, db)
+            return True
+        except Exception as e:
+            print(f"Failed to start Telegram Client for Profile {active_prof}: {e}")
+            telegram_client = None
+            return False
+    return False
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global telegram_client, db_pool
     db_pool = await init_db()
     
-    # --- NEW: Create Activity History Table ---
     await db_pool.execute('''
         CREATE TABLE IF NOT EXISTS activity_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,22 +89,11 @@ async def lifespan(app: FastAPI):
     ''')
     await db_pool.commit()
     
-    settings = await get_settings_dict(db_pool)
-    api_id, api_hash, session_name = settings.get('api_id'), settings.get('api_hash'), settings.get('session_name', 'wirekeeper_session')
+    # Init Telethon using the current active profile
+    await startup_telethon(db_pool)
     
-    if api_id and api_hash:
-        try:
-            telegram_client = TelegramClient(session_name, int(api_id), api_hash, connection=ConnectionTcpAbridged)
-            await telegram_client.start()
-            print("WireKeeper Engine Started Successfully.")
-            
-            # --- Initialize and start Orchestrator ---
-            queue_manager.initialize(telegram_client, db_pool)
-            asyncio.create_task(queue_manager.worker_loop())
-            
-        except Exception as e:
-            print(f"Failed to start Telegram Client: {e}")
-            telegram_client = None
+    # Boot the Orchestrator loop
+    asyncio.create_task(queue_manager.worker_loop())
     
     yield
     
@@ -86,7 +102,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# CORS config to allow the React frontend to communicate with this backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -103,6 +118,33 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+# --- NEW: Account Switcher Endpoint ---
+@app.post("/api/account/switch/{profile_id}")
+async def switch_profile(profile_id: str):
+    global telegram_client
+    if profile_id not in ["1", "2"]:
+        raise HTTPException(status_code=400, detail="Invalid profile ID")
+
+    await manager.broadcast({"event": "log", "message": f"Switching to Profile {profile_id}..."})
+
+    # 1. Brutally purge all active and pending downloads
+    await queue_manager.wipe_all()
+
+    # 2. Disconnect existing Telethon Client gracefully
+    if telegram_client and telegram_client.is_connected():
+        await telegram_client.disconnect()
+
+    # 3. Update active profile state in DB
+    await update_setting(db_pool, 'active_profile', profile_id)
+
+    # 4. Boot up the new client
+    success = await startup_telethon(db_pool)
+    
+    status_msg = f"Profile {profile_id} active and connected." if success else f"Profile {profile_id} active (Needs setup)."
+    await manager.broadcast({"event": "log", "message": status_msg})
+    
+    return {"status": "Profile switched", "connected": success}
 
 @app.get("/api/chats")
 async def get_chats():
@@ -158,18 +200,13 @@ async def get_chats():
             
         return result
 
-# --- NEW BULK TOGGLE ENDPOINT ---
 @app.post("/api/chats/toggle")
 async def toggle_chat_flags(req: ToggleRequest):
-    """Dynamically toggles boolean flags for one or multiple chats."""
     allowed_fields = {"is_batch", "defer", "enabled", "hidden"}
     if req.field not in allowed_fields:
         raise HTTPException(status_code=400, detail="Invalid field")
 
-    # Convert Python boolean to SQLite integer
     val = 1 if req.value else 0
-    
-    # Create the ?,?,? string dynamically based on how many chats were selected
     placeholders = ",".join("?" for _ in req.chat_ids)
     query = f"UPDATE chat_list SET {req.field} = ? WHERE chat_id IN ({placeholders})"
     
@@ -188,7 +225,6 @@ async def sync_multiple(req: MultiChatRequest):
     task_ids = []
     if not req.chat_ids: return {"status": "No chats provided"}
     
-    # 1. Look up all chat names at once
     placeholders = ",".join("?" for _ in req.chat_ids)
     query = f"SELECT chat_id, chat_name FROM chat_list WHERE chat_id IN ({placeholders})"
     async with db_pool.execute(query, req.chat_ids) as cursor:
@@ -197,7 +233,7 @@ async def sync_multiple(req: MultiChatRequest):
     for cid in req.chat_ids:
         tid = queue_manager.add_task("sync-single", {
             "chat_id": cid,
-            "chat_name": name_map.get(cid, str(cid)) # 2. Inject the name
+            "chat_name": name_map.get(cid, str(cid)) 
         }, broadcast=False)
         if tid: task_ids.append(tid)
 
@@ -252,12 +288,8 @@ async def start_download(chat_id: int, overwrite: bool = False, validate: bool =
     })
     return {"status": "Queued Download", "task_id": task_id}
 
-
 @app.get("/api/chat/{chat_id}/files")
 async def get_chat_files(chat_id: int):
-    """Fetches all successfully downloaded files for a specific chat, categorized."""
-    
-    # Updated to match your exact SQLite schema
     query = """
         SELECT message_id, final_filename, original_filename, file_size, file_path, timestamp 
         FROM downloads 
@@ -280,13 +312,11 @@ async def get_chat_files(chat_id: int):
     }
     
     for row in rows:
-        # Unpack the row based on the new query order
         msg_id, final_name, orig_name, size, path, date_dl = row
         
         category = "misc"
         path_lower = path.lower() if path else ""
         
-        # Standardize slashes for cross-platform checking
         normalized_path = path_lower.replace('\\', '/')
         if "/videos/" in normalized_path: category = "videos"
         elif "/images/" in normalized_path: category = "images"
@@ -333,7 +363,6 @@ async def start_batch(overwrite: bool = False, validate: bool = False, resume: b
     total_chats = len(batch_targets)
     task_ids = []
 
-    
     for i, row in enumerate(batch_targets, 1):
         chat_id, chat_name = row[0], row[1]
         tid = queue_manager.add_task("download-chat", {
@@ -348,19 +377,16 @@ async def start_batch(overwrite: bool = False, validate: bool = False, resume: b
         }, broadcast=False)
         if tid: task_ids.append(tid)
 
-    
     await queue_manager._broadcast_state()
     return {"status": "Queued Batch", "batch_id": batch_id, "task_ids": task_ids}
 
 @app.delete("/api/queue/batch/{batch_id}")
 async def kill_batch(batch_id: str):
-    """Kills all tasks associated with a specific batch."""
     result = await queue_manager.kill_batch(batch_id)
     return result
 
 @app.get("/api/queue")
 async def get_queue():
-    """Returns the current state of the Orchestrator."""
     return {
         "current_task": queue_manager.current_task,
         "queue": queue_manager.queue
@@ -368,40 +394,34 @@ async def get_queue():
 
 @app.delete("/api/queue/singles")
 async def kill_all_singles():
-    """Kills all standalone tasks."""
     result = await queue_manager.kill_all_singles()
     return result
 
 @app.delete("/api/queue/{task_id}")
 async def kill_task(task_id: str):
-    """Kills an active task or removes it from the queue."""
     result = await queue_manager.kill_task(task_id)
     return result
-
-
 
 @app.get("/api/status")
 async def system_status():
     settings = await get_settings_dict(db_pool)
-    setup_complete = bool(settings.get('api_id') and settings.get('api_hash'))
+    active_prof = settings.get('active_profile', '1')
+    setup_complete = bool(settings.get(f'profile_{active_prof}_api_id') and settings.get(f'profile_{active_prof}_api_hash'))
     
     return {
         "setup_complete": setup_complete,
+        "active_profile": active_prof,
         "client_connected": telegram_client.is_connected() if telegram_client else False,
         "active_ws_connections": len(manager.active_connections)
     }
 
 @app.get("/api/settings")
 async def get_current_settings():
-    """Fetches current settings for the UI form."""
     return await get_settings_dict(db_pool)
 
 @app.post("/api/settings")
 async def save_settings(settings: SettingsUpdate):
-    """Saves settings to the database using partial updates."""
-    # exclude_unset=True ensures we only update fields that were actually sent in the JSON payload!
     settings_dict = settings.model_dump(exclude_unset=True) 
-    
     for key, value in settings_dict.items():
         await update_setting(db_pool, key, value) 
     
@@ -409,7 +429,6 @@ async def save_settings(settings: SettingsUpdate):
 
 @app.get("/api/history")
 async def get_activity_history():
-    """Fetches persistent session history."""
     async with db_pool.execute("SELECT timestamp, chat_id, stats FROM activity_history ORDER BY id ASC") as cursor:
         rows = await cursor.fetchall()
         history = []
@@ -423,16 +442,12 @@ async def get_activity_history():
 
 @app.delete("/api/history")
 async def clear_activity_history():
-    """Wipes the entire persistent session history."""
     await db_pool.execute("DELETE FROM activity_history")
     await db_pool.commit()
     return {"status": "History cleared."}
     
 if __name__ == "__main__":
     import uvicorn
-    
-    # Read the port and host from the .env file, fallback to defaults if missing
     app_port = int(os.getenv("WIREKEEPER_PORT", 39486))
     app_host = os.getenv("WIREKEEPER_HOST", "0.0.0.0")
-    
     uvicorn.run("main:app", host=app_host, port=app_port, reload=True)

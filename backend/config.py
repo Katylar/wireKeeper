@@ -7,7 +7,7 @@ ENV_FILE = '.env'
 if not os.path.exists(ENV_FILE):
     with open(ENV_FILE, 'w') as f:
         f.write("WIREKEEPER_DB_PATH=wirekeeper.db\n")
-        f.write("WIREKEEPER_PORT=8000\n")
+        f.write("WIREKEEPER_PORT=39486\n")
         f.write("WIREKEEPER_HOST=0.0.0.0\n")
         f.write("WIREKEEPER_LOG_LEVEL=info\n")
 

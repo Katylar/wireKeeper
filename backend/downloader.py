@@ -11,14 +11,13 @@ from database import get_last_message_id, db_get_topic_exclusions, update_cursor
 from utils import normalize_name, generate_filename, get_file_category, get_msg_file_size, check_file_size_integrity, get_message_topic_id, get_dir_size
 from ws_manager import manager
 
-SYSTEM_PAUSED = False 
 last_total_speed = 0
 consecutive_no_gain = 0
 last_spawn_time = 0
 
-def should_spawn_smart(active_list, max_limit, speed_threshold_bytes):
-    global last_total_speed, consecutive_no_gain, last_spawn_time, SYSTEM_PAUSED
-    if SYSTEM_PAUSED: return False 
+def should_spawn_smart(active_list, max_limit, speed_threshold_bytes, pause_event):
+    global last_total_speed, consecutive_no_gain, last_spawn_time
+    if pause_event.is_set(): return False 
     if len(active_list) >= max_limit: return False
     if len(active_list) == 0:
         last_spawn_time = time.time()
@@ -46,164 +45,163 @@ class WorkerStatus:
         self.downloaded_bytes = 0
         self.type = w_type 
 
-async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mode, worker_status, app_settings):
-    global SYSTEM_PAUSED 
-    max_retries = int(app_settings.get('max_retries', 3))
+async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mode, worker_status, app_settings, pause_event):
+    retries_str = app_settings.get('max_retries', '3')
+    max_retries = int(retries_str) if str(retries_str).isdigit() else 3
     
     try:
         item = await queue.get()
     except asyncio.CancelledError:
         return
 
-    message_obj, initial_path, unique_id, chat_id, message_id, original_name, initial_final_name, expected_size, alt_path, idx_info = item
-    q_type, q_curr, q_total, g_total, file_category = idx_info
-    topic_id = get_message_topic_id(message_obj)
-    
-    final_path = initial_path
-    current_filename = initial_final_name
-    part_path = f"{initial_path}.{message_id}.part" 
+    try:
+        message_obj, initial_path, unique_id, chat_id, message_id, original_name, initial_final_name, expected_size, alt_path, idx_info = item
+        q_type, q_curr, q_total, g_total, file_category = idx_info
+        topic_id = get_message_topic_id(message_obj)
+        
+        final_path = initial_path
+        current_filename = initial_final_name
+        part_path = f"{initial_path}.{message_id}.part" 
 
-    if os.path.exists(final_path):
-        is_valid, _ = check_file_size_integrity(final_path, expected_size, current_filename)
-        if is_valid and not overwrite_mode:
-            await db_update_status(conn, unique_id, chat_id, message_id, 'success', final_path, original_name, current_filename, expected_size, topic_id)
-            stats['successful_downloads'] += 1
-            stats['categories'][file_category]['success'] += 1
-            queue.task_done()
-            return
-        elif overwrite_mode:
-            try: os.remove(final_path)
-            except OSError: pass
+        if os.path.exists(final_path):
+            is_valid, _ = check_file_size_integrity(final_path, expected_size, current_filename)
+            if is_valid and not overwrite_mode:
+                await db_update_status(conn, unique_id, chat_id, message_id, 'success', final_path, original_name, current_filename, expected_size, topic_id)
+                stats['successful_downloads'] += 1
+                stats['categories'][file_category]['success'] += 1
+                return
+            elif overwrite_mode:
+                try: os.remove(final_path)
+                except OSError: pass
 
-    if alt_path and os.path.exists(alt_path) and not overwrite_mode:
-        is_valid_alt, _ = check_file_size_integrity(alt_path, expected_size, current_filename)
-        if is_valid_alt:
-            await db_update_status(conn, unique_id, chat_id, message_id, 'success', alt_path, original_name, current_filename, expected_size, topic_id)
-            stats['successful_downloads'] += 1
-            stats['categories'][file_category]['success'] += 1
-            queue.task_done()
-            return
+        if alt_path and os.path.exists(alt_path) and not overwrite_mode:
+            is_valid_alt, _ = check_file_size_integrity(alt_path, expected_size, current_filename)
+            if is_valid_alt:
+                await db_update_status(conn, unique_id, chat_id, message_id, 'success', alt_path, original_name, current_filename, expected_size, topic_id)
+                stats['successful_downloads'] += 1
+                stats['categories'][file_category]['success'] += 1
+                return
 
-    await manager.broadcast({
-        "event": "task_start", 
-        "file_id": unique_id, 
-        "filename": current_filename, 
-        "chat_id": chat_id,
-        "queue_info": f"{q_type} {q_curr}/{q_total} (Global: {g_total})"
-    })
+        await manager.broadcast({
+            "event": "task_start", 
+            "file_id": unique_id, 
+            "filename": current_filename, 
+            "chat_id": chat_id,
+            "queue_info": f"{q_type} {q_curr}/{q_total} (Global: {g_total})"
+        })
 
-    offset = 0
-    should_resume = False
-    if os.path.exists(part_path):
-        if resume_mode:
-            current_part_size = os.path.getsize(part_path)
-            if expected_size and current_part_size < expected_size:
-                should_resume = True
-                offset = max(0, current_part_size - SAFE_RESUME_REWIND)
+        offset = 0
+        should_resume = False
+        if os.path.exists(part_path):
+            if resume_mode:
+                current_part_size = os.path.getsize(part_path)
+                if expected_size and current_part_size < expected_size:
+                    should_resume = True
+                    offset = max(0, current_part_size - SAFE_RESUME_REWIND)
+                else:
+                    try: os.remove(part_path)
+                    except: pass
             else:
                 try: os.remove(part_path)
                 except: pass
-        else:
-            try: os.remove(part_path)
-            except: pass
 
-    current_message = message_obj 
-    
-    for attempt in range(1, max_retries + 1):
-        try:
-            if SYSTEM_PAUSED:
-                await asyncio.sleep(5)
-                continue
-
-            worker_status.start_time = time.time()
-            
-            async def progress_callback(current, total):
-                elapsed = time.time() - worker_status.start_time
-                if elapsed > 1: worker_status.current_speed = current / elapsed
-                await manager.broadcast({
-                    "event": "progress",
-                    "file_id": unique_id,
-                    "downloaded": current,
-                    "total": total,
-                    "speed": worker_status.current_speed
-                })
-
-            if should_resume:
-                with open(part_path, 'r+b') as f:
-                    f.seek(offset); f.truncate()
-                    async for chunk in client.iter_download(current_message, offset=offset, chunk_size=512*1024):
-                        f.write(chunk)
-                        offset += len(chunk)
-                        await progress_callback(offset, expected_size)
-            else:
-                with open(part_path, 'wb') as f:
-                     await client.download_media(current_message, file=f, progress_callback=progress_callback)
-
-            if os.path.exists(final_path):
-                name, ext = os.path.splitext(initial_final_name)
-                current_filename = f"{name}_{message_id}{ext}"
-                final_path = os.path.join(os.path.dirname(initial_path), current_filename)
-
-            rename_success = False
-            for _ in range(3):
-                try:
-                    if os.path.exists(final_path): os.remove(final_path) 
-                    os.rename(part_path, final_path)
-                    rename_success = True; break
-                except OSError: await asyncio.sleep(1)
-            
-            if not rename_success: raise OSError("Failed to rename file after download")
-
-            is_valid, reason = check_file_size_integrity(final_path, expected_size, current_filename)
-            if not is_valid:
-                  try: os.remove(final_path) 
-                  except: pass
-                  raise Exception(f"Integrity check failed: {reason}")
-            
-            await db_update_status(conn, unique_id, chat_id, message_id, 'success', final_path, original_name, current_filename, expected_size, topic_id)
-            stats['successful_downloads'] += 1
-            stats['categories'][file_category]['success'] += 1
-
-            await conn.execute("UPDATE chat_list SET last_download = CURRENT_TIMESTAMP WHERE chat_id = ?", (chat_id,))
-            await conn.commit()
-
-            await manager.broadcast({"event": "task_complete", "file_id": unique_id, "status": "success"})
-            
-            if SYSTEM_PAUSED: 
-                SYSTEM_PAUSED = False
-                await manager.broadcast({"event": "log", "message": "Network recovered. Resuming spawner."})
-            break 
-
-        except errors.FileReferenceExpiredError:
-            await manager.broadcast({"event": "log", "message": f"Ref expired for {current_filename}. Refreshing..."})
-            await asyncio.sleep(2)
+        current_message = message_obj 
+        
+        for attempt in range(1, max_retries + 1):
             try:
-                refreshed = await client.get_messages(chat_id, ids=message_id)
-                if refreshed: current_message = refreshed
-                else: raise Exception("Could not refresh message reference")
-            except: pass
-            continue
-        except (errors.FloodWaitError, Exception) as e:
-            err_str = str(e).lower()
-            if any(x in err_str for x in ["429", "flood", "invalid response buffer", "disconnected"]):
-                SYSTEM_PAUSED = True
-                wait_time = getattr(e, 'seconds', 60) * attempt 
-                await manager.broadcast({"event": "error", "message": f"Network Throttle. Pausing system for {wait_time}s."})
-                await db_update_status(conn, unique_id, chat_id, message_id, 'queued', topic_id=topic_id)
-                await asyncio.sleep(wait_time)
-                if attempt < max_retries: continue
+                if pause_event.is_set():
+                    await asyncio.sleep(5)
+                    continue
 
-            if attempt == max_retries:
-                await db_update_status(conn, unique_id, chat_id, message_id, 'failed', topic_id=topic_id)
-                stats['failed_downloads'] += 1
-                stats['categories'][file_category]['failed'] += 1
-                await manager.broadcast({"event": "task_error", "file_id": unique_id, "error": str(e)})
-                if not resume_mode and os.path.exists(part_path):
-                    try: os.remove(part_path)
-                    except: pass
-            else: await asyncio.sleep(1)
+                worker_status.start_time = time.time()
+                
+                async def progress_callback(current, total):
+                    elapsed = time.time() - worker_status.start_time
+                    if elapsed > 1: worker_status.current_speed = current / elapsed
+                    await manager.broadcast({
+                        "event": "progress",
+                        "file_id": unique_id,
+                        "downloaded": current,
+                        "total": total,
+                        "speed": worker_status.current_speed
+                    })
 
-    queue.task_done()
+                if should_resume:
+                    with open(part_path, 'r+b') as f:
+                        f.seek(offset); f.truncate()
+                        async for chunk in client.iter_download(current_message, offset=offset, chunk_size=512*1024):
+                            f.write(chunk)
+                            offset += len(chunk)
+                            await progress_callback(offset, expected_size)
+                else:
+                    with open(part_path, 'wb') as f:
+                         await client.download_media(current_message, file=f, progress_callback=progress_callback)
+
+                if os.path.exists(final_path):
+                    name, ext = os.path.splitext(initial_final_name)
+                    current_filename = f"{name}_{message_id}{ext}"
+                    final_path = os.path.join(os.path.dirname(initial_path), current_filename)
+
+                rename_success = False
+                for _ in range(3):
+                    try:
+                        if os.path.exists(final_path): os.remove(final_path) 
+                        os.rename(part_path, final_path)
+                        rename_success = True; break
+                    except OSError: await asyncio.sleep(1)
+                
+                if not rename_success: raise OSError("Failed to rename file after download")
+
+                is_valid, reason = check_file_size_integrity(final_path, expected_size, current_filename)
+                if not is_valid:
+                      try: os.remove(final_path) 
+                      except: pass
+                      raise Exception(f"Integrity check failed: {reason}")
+                
+                await db_update_status(conn, unique_id, chat_id, message_id, 'success', final_path, original_name, current_filename, expected_size, topic_id)
+                stats['successful_downloads'] += 1
+                stats['categories'][file_category]['success'] += 1
+
+                await conn.execute("UPDATE chat_list SET last_download = CURRENT_TIMESTAMP WHERE chat_id = ?", (chat_id,))
+                await conn.commit()
+
+                await manager.broadcast({"event": "task_complete", "file_id": unique_id, "status": "success"})
+                
+                if pause_event.is_set(): 
+                    pause_event.clear()
+                    await manager.broadcast({"event": "log", "message": "Network recovered. Resuming spawner."})
+                break 
+
+            except errors.FileReferenceExpiredError:
+                await manager.broadcast({"event": "log", "message": f"Ref expired for {current_filename}. Refreshing..."})
+                await asyncio.sleep(2)
+                try:
+                    refreshed = await client.get_messages(chat_id, ids=message_id)
+                    if refreshed: current_message = refreshed
+                    else: raise Exception("Could not refresh message reference")
+                except: pass
+                continue
+            except (errors.FloodWaitError, Exception) as e:
+                err_str = str(e).lower()
+                if any(x in err_str for x in ["429", "flood", "invalid response buffer", "disconnected"]):
+                    pause_event.set()
+                    wait_time = getattr(e, 'seconds', 60) * attempt 
+                    await manager.broadcast({"event": "error", "message": f"Network Throttle. Pausing system for {wait_time}s."})
+                    await db_update_status(conn, unique_id, chat_id, message_id, 'queued', topic_id=topic_id)
+                    await asyncio.sleep(wait_time)
+                    if attempt < max_retries: continue
+
+                if attempt == max_retries:
+                    await db_update_status(conn, unique_id, chat_id, message_id, 'failed', topic_id=topic_id)
+                    stats['failed_downloads'] += 1
+                    stats['categories'][file_category]['failed'] += 1
+                    await manager.broadcast({"event": "task_error", "file_id": unique_id, "error": str(e)})
+                    if not resume_mode and os.path.exists(part_path):
+                        try: os.remove(part_path)
+                        except: pass
+                else: await asyncio.sleep(1)
+    finally:
+        queue.task_done()
 
 async def execute_rename_logic(conn, chat_id, db_chat_name, new_chat_title, app_settings):
     norm_old = normalize_name(db_chat_name)
@@ -335,25 +333,29 @@ async def sync_chatlist(client, conn):
     await manager.broadcast({"event": "log", "message": "Database Updated."})
 
 async def sync_single_chat(client, conn, chat_id):
-    entity = await client.get_entity(chat_id)
-    current_name = utils.get_display_name(entity)
-    
-    topics_json = None
-    if getattr(entity, 'forum', False):
-        result = await client(GetForumTopicsRequest(channel=entity, offset_date=None, offset_id=0, offset_topic=0, limit=100))
-        topics_list = [{"id": t.id, "title": t.title} for t in result.topics]
-        topics_json = json.dumps(topics_list, ensure_ascii=False)
+    try:
+        entity = await client.get_entity(chat_id)
+        current_name = utils.get_display_name(entity)
+        
+        topics_json = None
+        if getattr(entity, 'forum', False):
+            result = await client(GetForumTopicsRequest(channel=entity, offset_date=None, offset_id=0, offset_topic=0, limit=100))
+            topics_list = [{"id": t.id, "title": t.title} for t in result.topics]
+            topics_json = json.dumps(topics_list, ensure_ascii=False)
 
-    await conn.execute('''
-        UPDATE chat_list 
-        SET chat_name = ?, topics = ?, date_updated = CURRENT_TIMESTAMP 
-        WHERE chat_id = ?
-    ''', (current_name, topics_json, chat_id))
-    await conn.commit()
+        await conn.execute('''
+            UPDATE chat_list 
+            SET chat_name = ?, topics = ?, date_updated = CURRENT_TIMESTAMP, chat_status = 1
+            WHERE chat_id = ?
+        ''', (current_name, topics_json, chat_id))
+        await conn.commit()
+    except Exception as e:
+        await manager.broadcast({"event": "log", "message": f"Sync failed for {chat_id}: {e}. Marking as dead."})
+        await conn.execute("UPDATE chat_list SET chat_status = 0, enabled = 0 WHERE chat_id = ?", (chat_id,))
+        await conn.commit()
 
-async def process_chat_download(client, conn, chat_id, overwrite_mode=False, validate_mode=False, resume_mode=True):
-    global SYSTEM_PAUSED
-    SYSTEM_PAUSED = False 
+async def process_chat_download(client, conn, chat_id, overwrite_mode=False, validate_mode=False, resume_mode=True, batch_id=None, batch_index=None, batch_total=None):
+    pause_event = asyncio.Event()
     
     start_time_dt = datetime.now()
     start_time_sec = time.time()
@@ -362,9 +364,15 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
     app_settings = await get_settings_dict(conn)
     downloads_dir = app_settings.get('download_path', 'downloads')
     alt_downloads_dir = app_settings.get('alt_download_path', '')
-    max_concurrent_heavy = int(app_settings.get('max_concurrent_heavy', 3))
-    max_concurrent_light = int(app_settings.get('max_concurrent_light', 2))
-    speed_threshold_bytes = int(app_settings.get('speed_threshold_kb', 100)) * 1024
+    
+    heavy_str = app_settings.get('max_concurrent_heavy', '3')
+    max_concurrent_heavy = int(heavy_str) if str(heavy_str).isdigit() else 3
+    
+    light_str = app_settings.get('max_concurrent_light', '2')
+    max_concurrent_light = int(light_str) if str(light_str).isdigit() else 2
+    
+    speed_str = app_settings.get('speed_threshold_kb', '100')
+    speed_threshold_bytes = (int(speed_str) if str(speed_str).isdigit() else 100) * 1024
     
     ignored_str = app_settings.get('ignored_extensions', '')
     ignored_extensions = set()
@@ -375,7 +383,6 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
                 if not clean.startswith('.'): clean = f".{clean}"
                 ignored_extensions.add(clean)
 
-    # Initialize comprehensive stats object for the history logger
     stats = {
         'total_files_found': 0, 'total_messages_scanned': 0,
         'total_queued': 0,
@@ -446,7 +453,14 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
         excluded_topics = await db_get_topic_exclusions(conn, chat_id)
         last_read_id = 0 if validate_mode else await get_last_message_id(conn, chat_id)
         
-        await manager.broadcast({"event": "scan_start", "chat_name": chat_title, "chat_id": chat_id, "min_id": last_read_id})
+        await manager.broadcast({
+            "event": "scan_start", 
+            "chat_name": chat_title, 
+            "chat_id": chat_id, 
+            "min_id": last_read_id,
+            "batch_index": batch_index,
+            "batch_total": batch_total
+        })
         
         temp_download_list = []
         new_text_messages = []
@@ -624,14 +638,14 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
                     active_heavy = [(t, s) for t, s in active_heavy if not t.done()]
                     active_light = [(t, s) for t, s in active_light if not t.done()]
                     
-                    if not queue_heavy.empty() and should_spawn_smart(active_heavy, max_concurrent_heavy, speed_threshold_bytes):
+                    if not queue_heavy.empty() and should_spawn_smart(active_heavy, max_concurrent_heavy, speed_threshold_bytes, pause_event):
                         new_status = WorkerStatus(w_type="heavy")
-                        new_task = asyncio.create_task(download_worker(client, conn, queue_heavy, stats, overwrite_mode, resume_mode, new_status, app_settings))
+                        new_task = asyncio.create_task(download_worker(client, conn, queue_heavy, stats, overwrite_mode, resume_mode, new_status, app_settings, pause_event))
                         active_heavy.append((new_task, new_status))
                     
                     if not queue_light.empty() and len(active_light) < max_concurrent_light:
                         new_status = WorkerStatus(w_type="light")
-                        new_task = asyncio.create_task(download_worker(client, conn, queue_light, stats, overwrite_mode, resume_mode, new_status, app_settings))
+                        new_task = asyncio.create_task(download_worker(client, conn, queue_light, stats, overwrite_mode, resume_mode, new_status, app_settings, pause_event))
                         active_light.append((new_task, new_status))
                     
                     await asyncio.sleep(0.5)
@@ -648,17 +662,21 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
         await conn.execute("UPDATE chat_list SET total_size = ? WHERE chat_id = ?", (total_bytes, chat_id))
         await conn.commit()
 
+        # Clean up safely (only if truly empty)
         for p in folders.values():
-            try: os.rmdir(p)
-            except OSError: pass
-            
-        if alt_folders:
-            for p in alt_folders.values():
+            if os.path.exists(p) and not os.listdir(p):
                 try: os.rmdir(p)
                 except OSError: pass
+                
+        if alt_folders:
+            for p in alt_folders.values():
+                if os.path.exists(p) and not os.listdir(p):
+                    try: os.rmdir(p)
+                    except OSError: pass
 
-        try: os.rmdir(base_folder)
-        except OSError: pass
+        if os.path.exists(base_folder) and not os.listdir(base_folder):
+            try: os.rmdir(base_folder)
+            except OSError: pass
 
     except asyncio.CancelledError:
         task_status = "killed"
@@ -668,7 +686,6 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
         await manager.broadcast({"event": "log", "message": f"Fatal scan error: {e}"})
         raise
     finally:
-        # THE BURN-IN PROTOCOL: Always execute on completion, failure, or user kill command
         end_time_dt = datetime.now()
         elapsed = time.time() - start_time_sec
         
@@ -688,7 +705,8 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
             "total_messages": total_msgs,
             "last_message_id": last_msg_id,
             "total_enqueued": stats['total_queued'],
-            "breakdown": stats
+            "breakdown": stats,
+            "batch_id": batch_id
         }
         
         time_str = end_time_dt.strftime("%I:%M:%S %p")

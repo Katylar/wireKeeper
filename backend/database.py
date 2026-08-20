@@ -4,6 +4,8 @@ from config import DB_NAME
 async def init_db():
     conn = await aiosqlite.connect(DB_NAME)
     
+    await conn.execute('PRAGMA journal_mode=WAL;')
+    
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS downloads (
             file_unique_id TEXT PRIMARY KEY,
@@ -19,7 +21,6 @@ async def init_db():
         )
     ''')
     
-    # Cleaned up: All columns defined right from the start
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS chat_list (
             chat_id INTEGER PRIMARY KEY,
@@ -53,13 +54,23 @@ async def init_db():
         )
     ''')
     
+    # --- NEW: Seamless Migration to Multi-Account ---
+    # Renames existing single-account keys to Profile 1 so you don't have to log in again!
+    await conn.execute("UPDATE settings SET key = 'profile_1_api_id' WHERE key = 'api_id'")
+    await conn.execute("UPDATE settings SET key = 'profile_1_api_hash' WHERE key = 'api_hash'")
+    await conn.execute("UPDATE settings SET key = 'profile_1_session_name' WHERE key = 'session_name'")
+    
     async with conn.execute("SELECT COUNT(*) FROM settings") as cursor:
         count = (await cursor.fetchone())[0]
         if count == 0:
             default_settings = [
-                ('api_id', ''),
-                ('api_hash', ''),
-                ('session_name', 'wirekeeper_session'),
+                ('active_profile', '1'),
+                ('profile_1_api_id', ''),
+                ('profile_1_api_hash', ''),
+                ('profile_1_session_name', 'wirekeeper_session_1'),
+                ('profile_2_api_id', ''),
+                ('profile_2_api_hash', ''),
+                ('profile_2_session_name', 'wirekeeper_session_2'),
                 ('max_concurrent_heavy', '4'),
                 ('max_concurrent_light', '6'),
                 ('speed_threshold_kb', '100'),
@@ -69,6 +80,9 @@ async def init_db():
                 ('ignored_extensions', '.aac,.accdb,.aiff,.amr,.apk,.app,.azw,.azw3,.bat,.bin,.bittorrent,.c,.cer,.chm,.cmd,.com,.cpl,.cpp,.crt,.cs,.csr,.css,.csv,.db,.dbf,.djvu,.dmg,.doc,.docx,.epub,.exe,.fb2,.flac,.gadget,.go,.htm,.html,.iba,.ics,.ipa,.jar,.java,.js,.json,.key,.kpf,.lit,.log,.lrf,.m4a,.mdb,.mid,.midi,.mobi,.mp2,.mp3,.msg,.msi,.numbers,.odp,.ods,.odt,.oga,.ogg,.opus,.pages,.pdb,.pdf,.pem,.php,.pif,.ppt,.pptx,.prc,.ps1,.py,.ra,.rb,.rss,.rtf,.scr,.sh,.snd,.sql,.sqlite,.tcr,.tex,.torrent,.txt,.vbs,.vcard,.vcf,.wav,.wma,.xapk,.xhtml,.xls,.xlsx,.xml')
             ]
             await conn.executemany("INSERT INTO settings (key, value) VALUES (?, ?)", default_settings)
+        else:
+            # Ensure active_profile exists if migrating an older database
+            await conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('active_profile', '1')")
 
     await conn.execute('CREATE INDEX IF NOT EXISTS idx_chat_msg ON downloads(chat_id, message_id)')
     await conn.commit()
