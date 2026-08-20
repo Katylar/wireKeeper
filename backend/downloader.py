@@ -56,7 +56,7 @@ async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mod
         return
 
     message_obj, initial_path, unique_id, chat_id, message_id, original_name, initial_final_name, expected_size, alt_path, idx_info = item
-    q_type, q_curr, q_total, g_total = idx_info
+    q_type, q_curr, q_total, g_total, file_category = idx_info
     topic_id = get_message_topic_id(message_obj)
     
     final_path = initial_path
@@ -68,6 +68,7 @@ async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mod
         if is_valid and not overwrite_mode:
             await db_update_status(conn, unique_id, chat_id, message_id, 'success', final_path, original_name, current_filename, expected_size, topic_id)
             stats['successful_downloads'] += 1
+            stats['categories'][file_category]['success'] += 1
             queue.task_done()
             return
         elif overwrite_mode:
@@ -79,6 +80,7 @@ async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mod
         if is_valid_alt:
             await db_update_status(conn, unique_id, chat_id, message_id, 'success', alt_path, original_name, current_filename, expected_size, topic_id)
             stats['successful_downloads'] += 1
+            stats['categories'][file_category]['success'] += 1
             queue.task_done()
             return
 
@@ -160,6 +162,7 @@ async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mod
             
             await db_update_status(conn, unique_id, chat_id, message_id, 'success', final_path, original_name, current_filename, expected_size, topic_id)
             stats['successful_downloads'] += 1
+            stats['categories'][file_category]['success'] += 1
 
             await conn.execute("UPDATE chat_list SET last_download = CURRENT_TIMESTAMP WHERE chat_id = ?", (chat_id,))
             await conn.commit()
@@ -193,6 +196,7 @@ async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mod
             if attempt == max_retries:
                 await db_update_status(conn, unique_id, chat_id, message_id, 'failed', topic_id=topic_id)
                 stats['failed_downloads'] += 1
+                stats['categories'][file_category]['failed'] += 1
                 await manager.broadcast({"event": "task_error", "file_id": unique_id, "error": str(e)})
                 if not resume_mode and os.path.exists(part_path):
                     try: os.remove(part_path)
@@ -202,13 +206,9 @@ async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mod
     queue.task_done()
 
 async def execute_rename_logic(conn, chat_id, db_chat_name, new_chat_title, app_settings):
-    """Handles folder renaming and DB path updates when a chat title changes."""
     norm_old = normalize_name(db_chat_name)
     norm_new = normalize_name(new_chat_title)
-    
-    # If the normalized names are identical, no file system changes are needed
-    if norm_old == norm_new:
-        return
+    if norm_old == norm_new: return
 
     old_folder = f"[{chat_id}]_{norm_old}"
     new_folder = f"[{chat_id}]_{norm_new}"
@@ -219,7 +219,6 @@ async def execute_rename_logic(conn, chat_id, db_chat_name, new_chat_title, app_
     old_primary_path = os.path.join(downloads_dir, old_folder)
     new_primary_path = os.path.join(downloads_dir, new_folder)
     
-    # 1. Rename primary directory
     if os.path.exists(old_primary_path):
         try:
             os.rename(old_primary_path, new_primary_path)
@@ -227,7 +226,6 @@ async def execute_rename_logic(conn, chat_id, db_chat_name, new_chat_title, app_
         except OSError as e:
             await manager.broadcast({"event": "error", "message": f"Failed to rename primary folder {old_folder}: {e}"})
 
-    # 2. Rename alternate directory (if it exists)
     if alt_downloads_dir and os.path.exists(alt_downloads_dir):
         old_alt_path = os.path.join(alt_downloads_dir, old_folder)
         new_alt_path = os.path.join(alt_downloads_dir, new_folder)
@@ -237,9 +235,7 @@ async def execute_rename_logic(conn, chat_id, db_chat_name, new_chat_title, app_
             except OSError as e:
                 await manager.broadcast({"event": "error", "message": f"Failed to rename alt folder {old_folder}: {e}"})
 
-    # 3. Fast SQL Replace for all paths in the downloads table
     try:
-        # Cross-platform replace for forward and backward slashes
         query = """
             UPDATE downloads 
             SET file_path = REPLACE(
@@ -255,7 +251,6 @@ async def execute_rename_logic(conn, chat_id, db_chat_name, new_chat_title, app_
 
 async def sync_chatlist(client, conn):
     await manager.broadcast({"event": "log", "message": "Processing chat list (Syncing with DB)..."})
-    
     app_settings = await get_settings_dict(conn)
     db_chats = {}
     try:
@@ -294,15 +289,13 @@ async def sync_chatlist(client, conn):
 
         is_batch = bool(db_chats[chat_id]['is_batch']) if chat_id in db_chats else False
         
-        # Name Shift Logic & Folder Rename
         old_name = db_chats[chat_id]['old_name'] if chat_id in db_chats else None
         if chat_id in db_chats and db_chats[chat_id]['chat_name'] != current_name:
             old_name = db_chats[chat_id]['chat_name']
-            await execute_rename_logic(conn, old_name, current_name, app_settings)
+            await execute_rename_logic(conn, chat_id, old_name, current_name, app_settings)
             
         date_added = db_chats[chat_id]['date_added'] if chat_id in db_chats else current_time
 
-        # --- EDGE CASE: Wiped Chat History ---
         db_last_msg_id = db_chats[chat_id]['last_message_id'] if chat_id in db_chats else 0
         db_total_dl = db_chats[chat_id]['total_downloaded'] if chat_id in db_chats else 0
         
@@ -324,7 +317,6 @@ async def sync_chatlist(client, conn):
         if is_history_wiped:
             await conn.execute("UPDATE chat_list SET enabled = 0 WHERE chat_id = ?", (chat_id,))
 
-    # Identify ghost chats and mark them dead
     db_chat_ids = set(db_chats.keys())
     dead_chat_ids = db_chat_ids - seen_chat_ids
 
@@ -346,7 +338,6 @@ async def sync_single_chat(client, conn, chat_id):
     entity = await client.get_entity(chat_id)
     current_name = utils.get_display_name(entity)
     
-    # Refresh topics if it's a forum
     topics_json = None
     if getattr(entity, 'forum', False):
         result = await client(GetForumTopicsRequest(channel=entity, offset_date=None, offset_id=0, offset_topic=0, limit=100))
@@ -364,6 +355,10 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
     global SYSTEM_PAUSED
     SYSTEM_PAUSED = False 
     
+    start_time_dt = datetime.now()
+    start_time_sec = time.time()
+    task_status = "completed"
+    
     app_settings = await get_settings_dict(conn)
     downloads_dir = app_settings.get('download_path', 'downloads')
     alt_downloads_dir = app_settings.get('alt_download_path', '')
@@ -380,84 +375,84 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
                 if not clean.startswith('.'): clean = f".{clean}"
                 ignored_extensions.add(clean)
 
-    try:
-        entity = await client.get_entity(chat_id)
-        chat_title = utils.get_display_name(entity)
-        
-        # Fetch current total messages from Telegram to check for wiped history
-        try: total_messages = (await client.get_messages(entity, limit=0)).total
-        except: total_messages = 0
-
-        # Sync name changes, execute folder rename, and revive status during individual scan
-        async with conn.execute("SELECT chat_name, old_name, last_message_id, total_downloaded FROM chat_list WHERE chat_id = ?", (chat_id,)) as cursor:
-            row = await cursor.fetchone()
-            if not row:
-                await conn.execute("INSERT INTO chat_list (chat_id, chat_name, date_added, date_updated, chat_status) VALUES (?, ?, ?, ?, 1)", 
-                                   (chat_id, chat_title, datetime.now(), datetime.now()))
-            else:
-                db_chat_name, db_old_name, db_last_msg_id, db_total_dl = row
-                new_old_name = db_old_name
-                
-                # Shift name and rename folders if it changed on Telegram
-                if db_chat_name and db_chat_name != chat_title:
-                    new_old_name = db_chat_name
-                    await execute_rename_logic(conn, db_chat_name, chat_title, app_settings)
-                
-                # --- EDGE CASE: Wiped Chat History ---
-                if total_messages == 0 and ((db_last_msg_id or 0) > 0 or (db_total_dl or 0) > 0):
-                    await conn.execute("""
-                        UPDATE chat_list 
-                        SET chat_name = ?, old_name = ?, chat_status = 0, enabled = 0, total_messages = ?, date_updated = CURRENT_TIMESTAMP
-                        WHERE chat_id = ?
-                    """, (chat_title, new_old_name, db_last_msg_id, chat_id))
-                    await conn.commit()
-                    await manager.broadcast({"event": "log", "message": f"Chat history wiped for {chat_title}. Marking as dead."})
-                    
-                    # Abort the download safely by returning empty stats
-                    return {'total_files_found': 0, 'total_messages_scanned': 0, 'successful_downloads': 0, 'skipped_downloads': 0, 'failed_downloads': 0, 'new_text_messages': 0}
-                
-                await conn.execute("""
-                    UPDATE chat_list 
-                    SET chat_name = ?, old_name = ?, chat_status = 1, date_updated = CURRENT_TIMESTAMP
-                    WHERE chat_id = ?
-                """, (chat_title, new_old_name, chat_id))
-        await conn.commit()
-            
-    except Exception as e:
-        await manager.broadcast({"event": "log", "message": f"Error fetching chat {chat_id}: {e}. Marking as dead."})
-        # Mark as dead/disabled if Telegram denies access
-        await conn.execute("UPDATE chat_list SET chat_status = 0, enabled = 0 WHERE chat_id = ?", (chat_id,))
-        await conn.commit()
-        return
-
-    norm_name = normalize_name(chat_title)
-    base_folder = os.path.join(downloads_dir, f"[{chat_id}]_{norm_name}")
-    folders = {k: os.path.join(base_folder, k) for k in ['images', 'videos', 'archives', 'misc', 'audio']}
-    for p in folders.values(): os.makedirs(p, exist_ok=True)
-
-    alt_folders = None
-    if alt_downloads_dir and os.path.exists(alt_downloads_dir):
-        alt_base = os.path.join(alt_downloads_dir, f"[{chat_id}]_{norm_name}")
-        alt_folders = {k: os.path.join(alt_base, k) for k in ['images', 'videos', 'archives', 'misc', 'audio']}
-
-    excluded_topics = await db_get_topic_exclusions(conn, chat_id)
-    
-    last_read_id = 0 if validate_mode else await get_last_message_id(conn, chat_id)
-    
-    await manager.broadcast({"event": "scan_start", "chat_name": chat_title, "chat_id": chat_id, "min_id": last_read_id})
-    
+    # Initialize comprehensive stats object for the history logger
     stats = {
         'total_files_found': 0, 'total_messages_scanned': 0,
-        'successful_downloads': 0, 'skipped_downloads': 0, 
-        'failed_downloads': 0, 'new_text_messages': 0
+        'total_queued': 0,
+        'successful_downloads': 0, 'skipped_downloads': 0, 'failed_downloads': 0,
+        'new_text_messages': 0,
+        'categories': {
+            'images': {'success': 0, 'failed': 0, 'skipped': 0, 'enqueued': 0},
+            'videos': {'success': 0, 'failed': 0, 'skipped': 0, 'enqueued': 0},
+            'audio': {'success': 0, 'failed': 0, 'skipped': 0, 'enqueued': 0},
+            'archives': {'success': 0, 'failed': 0, 'skipped': 0, 'enqueued': 0},
+            'misc': {'success': 0, 'failed': 0, 'skipped': 0, 'enqueued': 0}
+        }
     }
-    
-    temp_download_list = []
-    new_text_messages = []
-    highest_scanned_id = last_read_id
-    scanned_ids_in_session = set()
 
     try:
+        try:
+            entity = await client.get_entity(chat_id)
+            chat_title = utils.get_display_name(entity)
+            try: total_messages = (await client.get_messages(entity, limit=0)).total
+            except: total_messages = 0
+
+            async with conn.execute("SELECT chat_name, old_name, last_message_id, total_downloaded FROM chat_list WHERE chat_id = ?", (chat_id,)) as cursor:
+                row = await cursor.fetchone()
+                if not row:
+                    await conn.execute("INSERT INTO chat_list (chat_id, chat_name, date_added, date_updated, chat_status) VALUES (?, ?, ?, ?, 1)", 
+                                       (chat_id, chat_title, datetime.now(), datetime.now()))
+                else:
+                    db_chat_name, db_old_name, db_last_msg_id, db_total_dl = row
+                    new_old_name = db_old_name
+                    
+                    if db_chat_name and db_chat_name != chat_title:
+                        new_old_name = db_chat_name
+                        await execute_rename_logic(conn, chat_id, db_chat_name, chat_title, app_settings)
+                    
+                    if total_messages == 0 and ((db_last_msg_id or 0) > 0 or (db_total_dl or 0) > 0):
+                        await conn.execute("""
+                            UPDATE chat_list 
+                            SET chat_name = ?, old_name = ?, chat_status = 0, enabled = 0, total_messages = ?, date_updated = CURRENT_TIMESTAMP
+                            WHERE chat_id = ?
+                        """, (chat_title, new_old_name, db_last_msg_id, chat_id))
+                        await conn.commit()
+                        await manager.broadcast({"event": "log", "message": f"Chat history wiped for {chat_title}. Marking as dead."})
+                        return stats
+                    
+                    await conn.execute("""
+                        UPDATE chat_list 
+                        SET chat_name = ?, old_name = ?, chat_status = 1, date_updated = CURRENT_TIMESTAMP
+                        WHERE chat_id = ?
+                    """, (chat_title, new_old_name, chat_id))
+            await conn.commit()
+                
+        except Exception as e:
+            await manager.broadcast({"event": "log", "message": f"Error fetching chat {chat_id}: {e}. Marking as dead."})
+            await conn.execute("UPDATE chat_list SET chat_status = 0, enabled = 0 WHERE chat_id = ?", (chat_id,))
+            await conn.commit()
+            return stats
+
+        norm_name = normalize_name(chat_title)
+        base_folder = os.path.join(downloads_dir, f"[{chat_id}]_{norm_name}")
+        folders = {k: os.path.join(base_folder, k) for k in ['images', 'videos', 'archives', 'misc', 'audio']}
+        for p in folders.values(): os.makedirs(p, exist_ok=True)
+
+        alt_folders = None
+        if alt_downloads_dir and os.path.exists(alt_downloads_dir):
+            alt_base = os.path.join(alt_downloads_dir, f"[{chat_id}]_{norm_name}")
+            alt_folders = {k: os.path.join(alt_base, k) for k in ['images', 'videos', 'archives', 'misc', 'audio']}
+
+        excluded_topics = await db_get_topic_exclusions(conn, chat_id)
+        last_read_id = 0 if validate_mode else await get_last_message_id(conn, chat_id)
+        
+        await manager.broadcast({"event": "scan_start", "chat_name": chat_title, "chat_id": chat_id, "min_id": last_read_id})
+        
+        temp_download_list = []
+        new_text_messages = []
+        highest_scanned_id = last_read_id
+        scanned_ids_in_session = set()
+
         async for message in client.iter_messages(entity, min_id=last_read_id):
             scanned_ids_in_session.add(message.id)
             stats['total_messages_scanned'] += 1
@@ -528,8 +523,12 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
 
                         if file_found_on_disk: 
                             stats['skipped_downloads'] += 1
+                            stats['categories'][category]['skipped'] += 1
                         else:
                             stats['total_files_found'] += 1
+                            stats['total_queued'] += 1
+                            stats['categories'][category]['enqueued'] += 1
+                            
                             await db_update_status(conn, unique_id, chat_id, message.id, 'queued', target_path, original_filename, final_filename, expected_size, msg_topic_id)
                             temp_download_list.append({
                                 'data': (message, target_path, unique_id, chat_id, message.id, original_filename, final_filename, expected_size, alt_target_path),
@@ -537,17 +536,15 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
                             })
                     else:
                         stats['skipped_downloads'] += 1
-    except Exception as e:
-        await manager.broadcast({"event": "log", "message": f"Scan error: {e}"})
+                        stats['categories'][category]['skipped'] += 1
 
-    if highest_scanned_id > last_read_id: await update_cursor(conn, chat_id, highest_scanned_id)
+        if highest_scanned_id > last_read_id: await update_cursor(conn, chat_id, highest_scanned_id)
 
-    incomplete_ids = await db_get_incomplete(conn, chat_id)
-    ids_to_fetch = list(incomplete_ids - scanned_ids_in_session)
-    
-    if ids_to_fetch:
-        await manager.broadcast({"event": "log", "message": f"Found {len(ids_to_fetch)} incomplete files. Re-fetching in chunks..."})
-        try:
+        incomplete_ids = await db_get_incomplete(conn, chat_id)
+        ids_to_fetch = list(incomplete_ids - scanned_ids_in_session)
+        
+        if ids_to_fetch:
+            await manager.broadcast({"event": "log", "message": f"Found {len(ids_to_fetch)} incomplete files. Re-fetching in chunks..."})
             chunk_size = 200
             for i in range(0, len(ids_to_fetch), chunk_size):
                 chunk = ids_to_fetch[i:i + chunk_size]
@@ -564,17 +561,17 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
                         expected_size = get_msg_file_size(message)
                         alt_target_path = os.path.join(alt_folders[category], final_filename) if alt_folders else None
                         
+                        stats['total_queued'] += 1
+                        stats['categories'][category]['enqueued'] += 1
+                        
                         await db_update_status(conn, unique_id, chat_id, message.id, 'queued', target_path, original_filename, final_filename, expected_size, msg_incomplete_topic_id)
                         temp_download_list.append({
                             'data': (message, target_path, unique_id, chat_id, message.id, original_filename, final_filename, expected_size, alt_target_path),
                             'category': category
                         })
-        except Exception as e:
-            await manager.broadcast({"event": "log", "message": f"Incomplete fetch error: {e}"})
 
-    if new_text_messages:
-        msg_file = os.path.join(base_folder, 'messages.json')
-        try:
+        if new_text_messages:
+            msg_file = os.path.join(base_folder, 'messages.json')
             existing = []
             if os.path.exists(msg_file):
                 try:
@@ -583,7 +580,6 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
                 except json.JSONDecodeError:
                     backup_file = f"{msg_file}.corrupt_{int(time.time())}.bak"
                     os.rename(msg_file, backup_file)
-                    await manager.broadcast({"event": "log", "message": f"Corrupted json backed up. Starting fresh."})
                     existing = []
             
             existing_ids = {msg['id'] for msg in existing}
@@ -599,93 +595,118 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
             if unique_new:
                 with open(msg_file, 'w', encoding='utf-8') as f:
                     json.dump(combined, f, indent=4, ensure_ascii=False)
-                await manager.broadcast({"event": "log", "message": f"Saved {len(unique_new)} text/media records."})
-        except Exception as e: 
-            await manager.broadcast({"event": "error", "message": f"Error saving messages: {e}"})
 
-    await update_total_downloaded(conn, chat_id)
+        await update_total_downloaded(conn, chat_id)
 
-    total_downloads_needed = len(temp_download_list)
-    await manager.broadcast({
-        "event": "scan_complete", 
-        "chat_id": chat_id,
-        "scanned": stats['total_messages_scanned'],
-        "queued": total_downloads_needed
-    })
-    
-    if total_downloads_needed > 0:
-        queue_heavy = asyncio.Queue()
-        queue_light = asyncio.Queue()
+        total_downloads_needed = len(temp_download_list)
+        await manager.broadcast({"event": "scan_complete", "chat_id": chat_id, "scanned": stats['total_messages_scanned'], "queued": total_downloads_needed})
         
-        total_heavy = sum(1 for x in temp_download_list if x['category'] in ['videos', 'archives', 'audio'])
-        total_light = len(temp_download_list) - total_heavy
-        
-        c_heavy, c_light = 0, 0
-        for item in temp_download_list:
-            if item['category'] in ['videos', 'archives', 'audio']:
-                c_heavy += 1
-                queue_heavy.put_nowait(item['data'] + (('heavy', c_heavy, total_heavy, total_downloads_needed),))
-            else:
-                c_light += 1
-                queue_light.put_nowait(item['data'] + (('light', c_light, total_light, total_downloads_needed),))
-        
-        active_heavy, active_light = [], []
+        if total_downloads_needed > 0:
+            queue_heavy = asyncio.Queue()
+            queue_light = asyncio.Queue()
+            
+            total_heavy = sum(1 for x in temp_download_list if x['category'] in ['videos', 'archives', 'audio'])
+            total_light = len(temp_download_list) - total_heavy
+            
+            c_heavy, c_light = 0, 0
+            for item in temp_download_list:
+                if item['category'] in ['videos', 'archives', 'audio']:
+                    c_heavy += 1
+                    queue_heavy.put_nowait(item['data'] + (('heavy', c_heavy, total_heavy, total_downloads_needed, item['category']),))
+                else:
+                    c_light += 1
+                    queue_light.put_nowait(item['data'] + (('light', c_light, total_light, total_downloads_needed, item['category']),))
+            
+            active_heavy, active_light = [], []
 
-        try:
-            while not queue_heavy.empty() or not queue_light.empty() or active_heavy or active_light:
-                active_heavy = [(t, s) for t, s in active_heavy if not t.done()]
-                active_light = [(t, s) for t, s in active_light if not t.done()]
-                
-                if not queue_heavy.empty() and should_spawn_smart(active_heavy, max_concurrent_heavy, speed_threshold_bytes):
-                    new_status = WorkerStatus(w_type="heavy")
-                    new_task = asyncio.create_task(download_worker(client, conn, queue_heavy, stats, overwrite_mode, resume_mode, new_status, app_settings))
-                    active_heavy.append((new_task, new_status))
-                
-                if not queue_light.empty() and len(active_light) < max_concurrent_light:
-                    new_status = WorkerStatus(w_type="light")
-                    new_task = asyncio.create_task(download_worker(client, conn, queue_light, stats, overwrite_mode, resume_mode, new_status, app_settings))
-                    active_light.append((new_task, new_status))
-                
-                await asyncio.sleep(0.5)
+            try:
+                while not queue_heavy.empty() or not queue_light.empty() or active_heavy or active_light:
+                    active_heavy = [(t, s) for t, s in active_heavy if not t.done()]
+                    active_light = [(t, s) for t, s in active_light if not t.done()]
+                    
+                    if not queue_heavy.empty() and should_spawn_smart(active_heavy, max_concurrent_heavy, speed_threshold_bytes):
+                        new_status = WorkerStatus(w_type="heavy")
+                        new_task = asyncio.create_task(download_worker(client, conn, queue_heavy, stats, overwrite_mode, resume_mode, new_status, app_settings))
+                        active_heavy.append((new_task, new_status))
+                    
+                    if not queue_light.empty() and len(active_light) < max_concurrent_light:
+                        new_status = WorkerStatus(w_type="light")
+                        new_task = asyncio.create_task(download_worker(client, conn, queue_light, stats, overwrite_mode, resume_mode, new_status, app_settings))
+                        active_light.append((new_task, new_status))
+                    
+                    await asyncio.sleep(0.5)
 
-        finally:
-            all_tasks = active_heavy + active_light
-            for task, _ in all_tasks: 
-                if not task.done(): task.cancel()
+            finally:
+                all_tasks = active_heavy + active_light
+                for task, _ in all_tasks: 
+                    if not task.done(): task.cancel()
 
-    total_bytes = await asyncio.to_thread(get_dir_size, base_folder)
-    if alt_folders:
-        total_bytes += await asyncio.to_thread(get_dir_size, alt_base)
-        
-    await conn.execute("UPDATE chat_list SET total_size = ? WHERE chat_id = ?", (total_bytes, chat_id))
-    await conn.commit()
+        total_bytes = await asyncio.to_thread(get_dir_size, base_folder)
+        if alt_folders:
+            total_bytes += await asyncio.to_thread(get_dir_size, alt_base)
+            
+        await conn.execute("UPDATE chat_list SET total_size = ? WHERE chat_id = ?", (total_bytes, chat_id))
+        await conn.commit()
 
-    for p in folders.values():
-        try: os.rmdir(p)
-        except OSError: pass
-        
-    if alt_folders:
-        for p in alt_folders.values():
+        for p in folders.values():
             try: os.rmdir(p)
             except OSError: pass
+            
+        if alt_folders:
+            for p in alt_folders.values():
+                try: os.rmdir(p)
+                except OSError: pass
 
-    try: os.rmdir(base_folder)
-    except OSError: pass
+        try: os.rmdir(base_folder)
+        except OSError: pass
 
-    time_str = datetime.now().strftime("%I:%M:%S %p")
-    await conn.execute("INSERT INTO activity_history (timestamp, chat_id, stats) VALUES (?, ?, ?)", (time_str, chat_id, json.dumps(stats)))
-    await conn.commit()    
+    except asyncio.CancelledError:
+        task_status = "killed"
+        raise
+    except Exception as e:
+        task_status = "failed"
+        await manager.broadcast({"event": "log", "message": f"Fatal scan error: {e}"})
+        raise
+    finally:
+        # THE BURN-IN PROTOCOL: Always execute on completion, failure, or user kill command
+        end_time_dt = datetime.now()
+        elapsed = time.time() - start_time_sec
+        
+        try:
+            async with conn.execute("SELECT total_messages, last_message_id FROM chat_list WHERE chat_id = ?", (chat_id,)) as cursor:
+                row = await cursor.fetchone()
+                total_msgs = row[0] if row else 0
+                last_msg_id = row[1] if row else 0
+        except:
+            total_msgs, last_msg_id = 0, 0
+            
+        history_data = {
+            "status": task_status,
+            "start_time": start_time_dt.strftime("%Y-%m-%d %I:%M:%S %p"),
+            "end_time": end_time_dt.strftime("%Y-%m-%d %I:%M:%S %p"),
+            "elapsed_seconds": round(elapsed, 2),
+            "total_messages": total_msgs,
+            "last_message_id": last_msg_id,
+            "total_enqueued": stats['total_queued'],
+            "breakdown": stats
+        }
+        
+        time_str = end_time_dt.strftime("%I:%M:%S %p")
+        try:
+            await conn.execute("INSERT INTO activity_history (timestamp, chat_id, stats) VALUES (?, ?, ?)", (time_str, chat_id, json.dumps(history_data)))
+            await conn.commit()
+        except Exception as db_e:
+            print(f"Failed to save history: {db_e}")
 
-    await manager.broadcast({
-        "event": "chat_complete", 
-        "chat_id": chat_id,
-        "stats": stats
-    })
+        await manager.broadcast({
+            "event": "chat_complete", 
+            "chat_id": chat_id,
+            "stats": history_data
+        })
     
     return stats
     
 async def process_batch_download(client, conn, overwrite_mode=False, validate_mode=False, resume_mode=True, sort_order="default"):
-    # Map the frontend string to a safe, hardcoded SQL injection-proof string
     order_mapping = {
         "default": "ORDER BY defer ASC, total_messages ASC",
         "chat_id_asc": "ORDER BY chat_id ASC",
@@ -696,7 +717,6 @@ async def process_batch_download(client, conn, overwrite_mode=False, validate_mo
         "date_added_desc": "ORDER BY date_added DESC"
     }
     
-    # Fallback to default if an unknown sort string is passed
     sql_order = order_mapping.get(sort_order, order_mapping["default"])
     
     await manager.broadcast({"event": "log", "message": f"[DB] Fetching batch list from database (Sort: {sort_order})..."})
@@ -713,7 +733,6 @@ async def process_batch_download(client, conn, overwrite_mode=False, validate_mo
     await manager.broadcast({"event": "log", "message": f"Batch processing {total_chats} chats."})
     
     for i, row in enumerate(batch_targets, 1):
-    
         await asyncio.sleep(0.1) 
         
         chat_id, chat_name = row[0], row[1]
@@ -721,7 +740,6 @@ async def process_batch_download(client, conn, overwrite_mode=False, validate_mo
         try:
             await process_chat_download(client, conn, chat_id, overwrite_mode, validate_mode, resume_mode)
         except asyncio.CancelledError:
-            # Re-raise so the Orchestrator knows the batch itself was killed
             raise 
         except Exception as e:
             await manager.broadcast({"event": "error", "message": f"Skipping {chat_name} due to error: {e}"})

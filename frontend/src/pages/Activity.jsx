@@ -1,11 +1,18 @@
 import React, { useMemo } from "react";
 import { useEngine } from "../context/WebSocketProvider";
 import ChatUnit from "../components/ChatUnit";
+
 import "../styles/layout/activity.scss";
 
 export default function Activity() {
-    const { currentTask, queue, killBatch, taskHistory, killAllSingles } =
-        useEngine();
+    const {
+        currentTask,
+        queue,
+        killBatch,
+        taskHistory,
+        killAllSingles,
+        clearHistory,
+    } = useEngine();
 
     // Separate Batch tasks from Single tasks
     const { batchTasks, singleTasks, currentBatchId } = useMemo(() => {
@@ -117,6 +124,13 @@ export default function Activity() {
             <section className="activity-section history-section">
                 <div className="section-header">
                     <h2>Session History</h2>
+                    {taskHistory.length > 0 && (
+                        <button
+                            className="btn-kill-danger"
+                            onClick={clearHistory}>
+                            CLEAR HISTORY
+                        </button>
+                    )}
                 </div>
                 <div className="history-terminal">
                     {taskHistory.length === 0 ? (
@@ -125,22 +139,100 @@ export default function Activity() {
                         </span>
                     ) : (
                         taskHistory.map((hist, i) => (
-                            <div key={i} className="history-line">
-                                <span className="timestamp">[{hist.time}]</span>
-                                <span className="action">
-                                    Chat {hist.chat_id} Completed.
-                                </span>
-                                <span className="stats">
-                                    Found: {hist.stats.total_files_found} |
-                                    Success:{" "}
-                                    <span className="success">
-                                        {hist.stats.successful_downloads}
-                                    </span>{" "}
-                                    | Failed:{" "}
-                                    <span className="failed">
-                                        {hist.stats.failed_downloads}
-                                    </span>
-                                </span>
+                            <div
+                                key={i}
+                                className={`history-card ${hist.stats?.status || "unknown"}`}>
+                                <div className="history-card-header">
+                                    <div className="chat-title">
+                                        <span
+                                            className={`status-indicator ${hist.stats?.status || "unknown"}`}></span>
+                                        Chat {hist.chat_id} -{" "}
+                                        {(
+                                            hist.stats?.status || "UNKNOWN"
+                                        ).toUpperCase()}
+                                    </div>
+                                    <div className="time-info">
+                                        {hist.stats?.start_time ||
+                                            "Unknown Start"}{" "}
+                                        to{" "}
+                                        {hist.stats?.end_time || "Unknown End"}
+                                        {hist.stats?.elapsed_seconds &&
+                                            ` (${hist.stats.elapsed_seconds}s)`}
+                                    </div>
+                                </div>
+
+                                <div className="history-card-body">
+                                    <div className="stat-row">
+                                        <span>
+                                            <strong>Total Msgs:</strong>{" "}
+                                            {hist.stats?.total_messages || 0}
+                                        </span>
+                                        <span>
+                                            <strong>Last Msg ID:</strong>{" "}
+                                            {hist.stats?.last_message_id || 0}
+                                        </span>
+                                        <span>
+                                            <strong>Total Enqueued:</strong>{" "}
+                                            {hist.stats?.total_enqueued ||
+                                                hist.stats?.total_files_found ||
+                                                0}
+                                        </span>
+                                    </div>
+
+                                    <div className="category-breakdown">
+                                        {/* Optional Chaining here prevents crashes on old DB rows! */}
+                                        {hist.stats?.breakdown?.categories &&
+                                            Object.entries(
+                                                hist.stats.breakdown.categories,
+                                            ).map(([cat, counts]) => {
+                                                if (
+                                                    counts.enqueued === 0 &&
+                                                    counts.skipped === 0
+                                                )
+                                                    return null;
+
+                                                const aborted =
+                                                    counts.enqueued -
+                                                    counts.success -
+                                                    counts.failed;
+
+                                                return (
+                                                    <div
+                                                        key={cat}
+                                                        className="cat-pill">
+                                                        <span className="cat-name">
+                                                            {cat.toUpperCase()}
+                                                        </span>
+                                                        <span className="cat-stats">
+                                                            <span
+                                                                className="success"
+                                                                title="Success">
+                                                                {counts.success}
+                                                            </span>{" "}
+                                                            /
+                                                            <span
+                                                                className="failed"
+                                                                title="Failed">
+                                                                {counts.failed}
+                                                            </span>{" "}
+                                                            /
+                                                            <span
+                                                                className="aborted"
+                                                                title="Killed/Unfinished">
+                                                                {aborted}
+                                                            </span>{" "}
+                                                            /
+                                                            <span
+                                                                className="skipped"
+                                                                title="Skipped (Already on Disk)">
+                                                                {counts.skipped}
+                                                            </span>
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
+                                    </div>
+                                </div>
                             </div>
                         ))
                     )}

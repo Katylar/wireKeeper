@@ -420,7 +420,14 @@ async def get_activity_history():
                 "stats": json.loads(r[2]) if r[2] else {}
             })
         return history
-        
+
+@app.delete("/api/history")
+async def clear_activity_history():
+    """Wipes the entire persistent session history."""
+    await db_pool.execute("DELETE FROM activity_history")
+    await db_pool.commit()
+    return {"status": "History cleared."}
+    
 if __name__ == "__main__":
     import uvicorn
     

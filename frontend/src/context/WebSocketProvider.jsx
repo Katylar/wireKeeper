@@ -267,6 +267,11 @@ export const WebSocketProvider = ({ children }) => {
         await fetch(`${API_BASE}/queue/singles`, { method: "DELETE" });
     };
 
+    const clearHistory = async () => {
+        await fetch(`${API_BASE}/history`, { method: "DELETE" });
+        setTaskHistory([]); // Instantly wipe the UI without waiting for a reload
+    };
+
     return (
         <WebSocketContext.Provider
             value={{
@@ -283,6 +288,7 @@ export const WebSocketProvider = ({ children }) => {
                 killTask,
                 killBatch,
                 killAllSingles,
+                clearHistory,
             }}>
             {children}
         </WebSocketContext.Provider>

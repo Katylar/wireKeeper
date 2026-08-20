@@ -2,8 +2,8 @@ import asyncio
 import uuid
 import time
 from ws_manager import manager
-# from downloader import process_chat_download, sync_chatlist, sync_single_chat, process_batch_download
-from tester import process_chat_download, sync_chatlist, sync_single_chat
+from downloader import process_chat_download, sync_chatlist, sync_single_chat
+# from tester import process_chat_download, sync_chatlist, sync_single_chat
 
 class Orchestrator:
     def __init__(self):

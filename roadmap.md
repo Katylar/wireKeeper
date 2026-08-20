@@ -34,3 +34,16 @@ SELECT FILE TYPES to VAULT
 ---
 
 VALIDATE don't work (it doesn't play nice with PURGER because the last-message-id doesn't get reset) - Create PURGE + RESET function
+A skipped/killed is still 'complete'
+
+History should be saved
+Settings (filter/sorting) should be saved
+
+
+[9:31:43 PM]
+Chat 1801160866 Completed.
+Found: 200 | Success: 190 | Failed: 10
+
+Add time-start, time-end, time-elapsed for the FINISHED FILES and the progress abr
+
+Processing 114 queued chats --> Include start time, time-elapsed, and X of Y
