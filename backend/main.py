@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 from contextlib import asynccontextmanager
-from telethon import TelegramClient
+from telethon import TelegramClient, errors
 from telethon.network import ConnectionTcpAbridged
 
 from database import init_db, get_settings_dict, update_setting
@@ -20,15 +20,10 @@ from logger import logger
 
 telegram_client = None
 db_pool = None
+auth_clients = {}  # Global dict to hold temporary auth clients during the 2-step login process
 
 class SettingsUpdate(BaseModel):
     active_profile: Optional[str] = None
-    profile_1_api_id: Optional[str] = None
-    profile_1_api_hash: Optional[str] = None
-    profile_1_session_name: Optional[str] = None
-    profile_2_api_id: Optional[str] = None
-    profile_2_api_hash: Optional[str] = None
-    profile_2_session_name: Optional[str] = None
     download_path: Optional[str] = None
     alt_download_path: Optional[str] = None
     max_concurrent_heavy: Optional[str] = None
@@ -50,6 +45,19 @@ class MultiChatRequest(BaseModel):
     validate_mode: Optional[bool] = False
     resume: Optional[bool] = True
 
+class AuthStep1Req(BaseModel):
+    api_id: str
+    api_hash: str
+    phone: str
+
+class AuthStep2Req(BaseModel):
+    profile_id: str
+    phone: str
+    code: str
+    password: Optional[str] = None
+    api_id: str
+    api_hash: str
+
 async def get_active_api_id():
     settings = await get_settings_dict(db_pool)
     active_prof = settings.get('active_profile', '1')
@@ -70,7 +78,6 @@ async def startup_telethon(db):
             telegram_client = TelegramClient(session_name, int(api_id), api_hash, connection=ConnectionTcpAbridged)
             await telegram_client.start()
             
-            # --- NEW: Fetch actual Telegram identity for the UI! ---
             try:
                 me = await telegram_client.get_me()
                 if me:
@@ -131,6 +138,11 @@ async def lifespan(app: FastAPI):
     
     logger.info("Shutting down WireKeeper Engine...")
     if telegram_client: await telegram_client.disconnect()
+    
+    # Clean up any stranded temp auth clients
+    for pid, data in auth_clients.items():
+        if data.get("client"): await data["client"].disconnect()
+        
     await db_pool.close()
     logger.info("Shutdown complete.")
 
@@ -153,13 +165,115 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
+
+# --- DYNAMIC AUTHENTICATION ENDPOINTS ---
+@app.post("/api/accounts/auth/step1")
+async def auth_step1(req: AuthStep1Req):
+    profile_id = uuid.uuid4().hex[:8]
+    session_name = f"wirekeeper_session_{profile_id}"
+    
+    logger.info(f"Initiating new frontend auth flow (Profile ID: {profile_id}).")
+    client = TelegramClient(session_name, int(req.api_id), req.api_hash)
+    await client.connect()
+    
+    try:
+        sent_code = await client.send_code_request(req.phone)
+        auth_clients[profile_id] = {
+            "client": client,
+            "phone_code_hash": sent_code.phone_code_hash
+        }
+        return {"status": "success", "profile_id": profile_id}
+    except Exception as e:
+        await client.disconnect()
+        logger.error(f"Auth Step 1 failed: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/accounts/auth/step2")
+async def auth_step2(req: AuthStep2Req):
+    global telegram_client
+    if req.profile_id not in auth_clients:
+        raise HTTPException(status_code=400, detail="Authentication session not found or expired.")
+        
+    auth_data = auth_clients[req.profile_id]
+    client = auth_data["client"]
+    
+    try:
+        await client.sign_in(phone=req.phone, code=req.code, password=req.password, phone_code_hash=auth_data["phone_code_hash"])
+        
+        me = await client.get_me()
+        display_name = f"@{me.username}" if getattr(me, 'username', None) else (f"+{me.phone}" if getattr(me, 'phone', None) else getattr(me, 'first_name', f"Account {req.profile_id}"))
+        
+        settings = await get_settings_dict(db_pool)
+        profiles = json.loads(settings.get('profiles_list', '["1", "2"]'))
+        if req.profile_id not in profiles:
+            profiles.append(req.profile_id)
+            
+        await update_setting(db_pool, 'profiles_list', json.dumps(profiles))
+        await update_setting(db_pool, f'profile_{req.profile_id}_api_id', req.api_id)
+        await update_setting(db_pool, f'profile_{req.profile_id}_api_hash', req.api_hash)
+        await update_setting(db_pool, f'profile_{req.profile_id}_session_name', f"wirekeeper_session_{req.profile_id}")
+        await update_setting(db_pool, f'profile_{req.profile_id}_account_name', display_name)
+        await update_setting(db_pool, 'active_profile', req.profile_id)
+        
+        # Kill the old system client, replace with the newly authenticated one
+        if telegram_client and telegram_client.is_connected():
+            await telegram_client.disconnect()
+            
+        telegram_client = client 
+        queue_manager.initialize(telegram_client, db_pool)
+        
+        del auth_clients[req.profile_id]
+        logger.info(f"Frontend authentication successful! Bound to Account: {display_name}")
+        
+        return {"status": "success", "profile_id": req.profile_id}
+        
+    except errors.SessionPasswordNeededError:
+        return {"status": "password_required"}
+    except Exception as e:
+        logger.error(f"Auth Step 2 failed: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/api/accounts/{profile_id}")
+async def delete_account(profile_id: str):
+    global telegram_client
+    settings = await get_settings_dict(db_pool)
+    profiles = json.loads(settings.get('profiles_list', '["1", "2"]'))
+    
+    if len(profiles) <= 1:
+        raise HTTPException(status_code=400, detail="Cannot delete the last remaining account.")
+        
+    if profile_id in profiles:
+        profiles.remove(profile_id)
+        
+    await update_setting(db_pool, 'profiles_list', json.dumps(profiles))
+    
+    await db_pool.execute("DELETE FROM settings WHERE key LIKE ?", (f"profile_{profile_id}_%",))
+    await db_pool.commit()
+    
+    session_name = settings.get(f'profile_{profile_id}_session_name', f'wirekeeper_session_{profile_id}')
+    if os.path.exists(f"{session_name}.session"):
+        try: os.remove(f"{session_name}.session")
+        except Exception as e: logger.warning(f"Could not remove session file {session_name}: {e}")
+        
+    active_prof = settings.get('active_profile', '1')
+    if active_prof == profile_id:
+        new_active = profiles[0]
+        await update_setting(db_pool, 'active_profile', new_active)
+        
+        if telegram_client and telegram_client.is_connected():
+            await telegram_client.disconnect()
+        await startup_telethon(db_pool)
+        
+    logger.info(f"Account {profile_id} permanently deleted and session purged.")
+    return {"status": "success", "profiles": profiles}
+
+
+# --- EXISTING ENDPOINTS ---
+
 @app.post("/api/account/switch/{profile_id}")
 async def switch_profile(profile_id: str):
     global telegram_client
-    if profile_id not in ["1", "2"]:
-        logger.warning(f"Rejecting invalid profile switch request: {profile_id}")
-        raise HTTPException(status_code=400, detail="Invalid profile ID")
-
+    
     logger.info(f"--- ACCOUNT SWITCH INITIATED: Changing to Profile {profile_id} ---")
     await manager.broadcast({"event": "log", "message": f"Switching to Profile {profile_id}..."})
 
@@ -456,13 +570,26 @@ async def kill_task(task_id: str):
 async def system_status():
     settings = await get_settings_dict(db_pool)
     active_prof = settings.get('active_profile', '1')
+    
+    profiles_raw = settings.get('profiles_list', '["1", "2"]')
+    try:
+        profiles = json.loads(profiles_raw)
+    except:
+        profiles = ["1", "2"]
+        
+    accounts = []
+    for p in profiles:
+        accounts.append({
+            "id": p,
+            "name": settings.get(f'profile_{p}_account_name', f'Account {p}')
+        })
+        
     setup_complete = bool(settings.get(f'profile_{active_prof}_api_id') and settings.get(f'profile_{active_prof}_api_hash'))
     
     return {
         "setup_complete": setup_complete,
         "active_profile": active_prof,
-        "profile_1_name": settings.get('profile_1_account_name', 'Account 1'),
-        "profile_2_name": settings.get('profile_2_account_name', 'Account 2'),
+        "accounts": accounts,
         "last_global_sync": settings.get(f'profile_{active_prof}_last_global_sync', 'Never'),
         "client_connected": telegram_client.is_connected() if telegram_client else False,
         "active_ws_connections": len(manager.active_connections)

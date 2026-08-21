@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useEngine } from "../context/WebSocketProvider";
 
-// Utility for formatting speed/sizes
 const formatSpeed = (bytesPerSec) => {
     if (!bytesPerSec) return "0 B/s";
     const mb = bytesPerSec / (1024 * 1024);
@@ -17,7 +16,9 @@ export default function ChatUnit({ task, isRunning }) {
     const scanState = activeScans[chatId];
     const chatFinishedFiles = finishedFiles[chatId] || [];
 
-    // Filter active workers for this specific chat
+    const isGlobalSync = task.type === "sync-all";
+    const globalSyncState = activeScans["global_sync"];
+
     const { heavyWorkers, lightWorkers } = useMemo(() => {
         const heavy = [];
         const light = [];
@@ -35,12 +36,9 @@ export default function ChatUnit({ task, isRunning }) {
             <div className="chat-unit pending">
                 <div className="unit-header">
                     <span className="title">
-                        {task.type === "sync-single" ? "Sync" : "Download"}:{" "}
-                        {task.params?.chat_name || chatId}
+                        {task.type === "sync-single" ? "Sync" : "Download"}: {task.params?.chat_name || chatId}
                     </span>
-                    <button
-                        className="btn-skip"
-                        onClick={() => killTask(task.id)}>
+                    <button className="btn-skip" onClick={() => killTask(task.id)}>
                         Remove from Queue
                     </button>
                 </div>
@@ -54,24 +52,13 @@ export default function ChatUnit({ task, isRunning }) {
                 <div className="title-group">
                     <span className="spinner"></span>
                     <span className="title">
-                        {task.params?.batch_id
-                            ? `[Batch ${task.params.batch_index}/${task.params.batch_total}] `
-                            : ""}
-                        {/* 1. Dynamic Title Fix */}
-                        {task.type.includes("sync")
-                            ? "Syncing:"
-                            : "Downloading:"}{" "}
-                        {task.params?.chat_name || chatId}
-                        {" · "}
-                        {chatId}
+                        {task.params?.batch_id ? `[Batch ${task.params.batch_index}/${task.params.batch_total}] ` : ""}
+                        {task.type.includes("sync") ? "Syncing:" : "Downloading:"} {task.params?.chat_name || chatId}
+                        {chatId ? ` · ${chatId}` : ""}
                     </span>
                     <div className="tags">
-                        {task.params?.overwrite && (
-                            <span className="tag warn">Overwrite</span>
-                        )}
-                        {task.params?.validate && (
-                            <span className="tag info">Validate</span>
-                        )}
+                        {task.params?.overwrite && <span className="tag warn">Overwrite</span>}
+                        {task.params?.validate && <span className="tag info">Validate</span>}
                     </div>
                 </div>
                 <button className="btn-skip" onClick={() => killTask(task.id)}>
@@ -80,15 +67,30 @@ export default function ChatUnit({ task, isRunning }) {
             </div>
 
             <div className="unit-body">
-                {/* Scanner Status */}
+                {/* --- NEW: Scanner / Global Sync Status --- */}
                 <div className="scan-status">
-                    {!task.type.includes("sync") && (
-                        <div className="scan-status">
-                            <strong>Scan Status:</strong>{" "}
-                            {scanState
-                                ? `${scanState.status || "Scanning..."} (${scanState.scanned} checked) ${scanState.total_queued ? `-> ${scanState.total_queued} downloads queued.` : ""}`
-                                : "Preparing..."}
+                    {isGlobalSync ? (
+                        <div className="sync-status">
+                            <strong>Sync Progress:</strong> {globalSyncState ? `Scanned ${globalSyncState.scanned} chats from Telegram...` : "Initializing sync..."}
+                            {globalSyncState?.changes && globalSyncState.changes.length > 0 && (
+                                <div className="sync-changes" style={{ marginTop: "0.75rem", fontSize: "0.9rem", color: "#f9e2af", background: "#11111b", padding: "0.75rem", borderRadius: "4px", borderLeft: "3px solid #f9e2af" }}>
+                                    <strong style={{ display: "block", marginBottom: "0.25rem" }}>Database Updates Detected:</strong>
+                                    <ul style={{ margin: 0, paddingLeft: "1.25rem" }}>
+                                        {globalSyncState.changes.map((change, idx) => (
+                                            <li key={idx} style={{ marginBottom: "0.15rem" }}>
+                                                {change}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
                         </div>
+                    ) : (
+                        !task.type.includes("sync") && (
+                            <div className="scan-status">
+                                <strong>Scan Status:</strong> {scanState ? `${scanState.status || "Scanning..."} (${scanState.scanned} checked) ${scanState.total_queued ? `-> ${scanState.total_queued} downloads queued.` : ""}` : "Preparing..."}
+                            </div>
+                        )
                     )}
                 </div>
 
@@ -99,14 +101,10 @@ export default function ChatUnit({ task, isRunning }) {
                         {heavyWorkers.map((w) => (
                             <div key={w.file_id} className="worker-row">
                                 <div className="worker-info">
-                                    <span
-                                        className="filename"
-                                        title={w.filename}>
+                                    <span className="filename" title={w.filename}>
                                         {w.filename}
                                     </span>
-                                    <span className="queue-pos">
-                                        [{w.queue_info}]
-                                    </span>
+                                    <span className="queue-pos">[{w.queue_info}]</span>
                                 </div>
                                 <div className="progress-container">
                                     <div
@@ -115,9 +113,7 @@ export default function ChatUnit({ task, isRunning }) {
                                             width: `${w.progress || 0}%`,
                                         }}></div>
                                 </div>
-                                <div className="speed">
-                                    {formatSpeed(w.speed)}
-                                </div>
+                                <div className="speed">{formatSpeed(w.speed)}</div>
                             </div>
                         ))}
                     </div>
@@ -130,14 +126,10 @@ export default function ChatUnit({ task, isRunning }) {
                         {lightWorkers.map((w) => (
                             <div key={w.file_id} className="worker-row">
                                 <div className="worker-info">
-                                    <span
-                                        className="filename"
-                                        title={w.filename}>
+                                    <span className="filename" title={w.filename}>
                                         {w.filename}
                                     </span>
-                                    <span className="queue-pos">
-                                        [{w.queue_info}]
-                                    </span>
+                                    <span className="queue-pos">[{w.queue_info}]</span>
                                 </div>
                                 <div className="progress-container">
                                     <div
@@ -146,9 +138,7 @@ export default function ChatUnit({ task, isRunning }) {
                                             width: `${w.progress || 0}%`,
                                         }}></div>
                                 </div>
-                                <div className="speed">
-                                    {formatSpeed(w.speed)}
-                                </div>
+                                <div className="speed">{formatSpeed(w.speed)}</div>
                             </div>
                         ))}
                     </div>
@@ -157,32 +147,16 @@ export default function ChatUnit({ task, isRunning }) {
                 {/* Finished Files Collapsible */}
                 {chatFinishedFiles.length > 0 && (
                     <div className="finished-section">
-                        <button
-                            className="toggle-btn"
-                            onClick={() => setShowFinished(!showFinished)}>
-                            {showFinished
-                                ? "▼ Hide Finished Files"
-                                : `▶ Show Finished Files (${chatFinishedFiles.length})`}
+                        <button className="toggle-btn" onClick={() => setShowFinished(!showFinished)}>
+                            {showFinished ? "▼ Hide Finished Files" : `▶ Show Finished Files (${chatFinishedFiles.length})`}
                         </button>
                         {showFinished && (
                             <div className="finished-list">
                                 {chatFinishedFiles.map((f, i) => (
-                                    <div
-                                        key={i}
-                                        className={`finished-row ${f.final_status}`}>
-                                        <span className="icon">
-                                            {f.final_status === "success"
-                                                ? "✔"
-                                                : "✘"}
-                                        </span>
-                                        <span className="filename">
-                                            {f.filename}
-                                        </span>
-                                        {f.error_msg && (
-                                            <span className="error-text">
-                                                ({f.error_msg})
-                                            </span>
-                                        )}
+                                    <div key={i} className={`finished-row ${f.final_status}`}>
+                                        <span className="icon">{f.final_status === "success" ? "✔" : "✘"}</span>
+                                        <span className="filename">{f.filename}</span>
+                                        {f.error_msg && <span className="error-text">({f.error_msg})</span>}
                                     </div>
                                 ))}
                             </div>

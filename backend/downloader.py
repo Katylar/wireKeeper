@@ -10,7 +10,7 @@ from config import SAFE_RESUME_REWIND
 from database import get_last_message_id, db_get_topic_exclusions, update_cursor, db_check_existing, db_update_status, db_get_incomplete, update_total_downloaded, get_settings_dict
 from utils import normalize_name, generate_filename, get_file_category, get_msg_file_size, check_file_size_integrity, get_message_topic_id, get_dir_size
 from ws_manager import manager
-from logger import logger # --- NEW ---
+from logger import logger 
 
 last_total_speed = 0
 consecutive_no_gain = 0
@@ -276,8 +276,11 @@ async def execute_rename_logic(conn, api_id, chat_id, db_chat_name, new_chat_tit
 async def sync_chatlist(client, conn):
     logger.info("--- STARTING GLOBAL CHATLIST SYNC ---")
     await manager.broadcast({"event": "log", "message": "Processing chat list (Syncing with DB)..."})
-    app_settings = await get_settings_dict(conn)
     
+    # --- NEW: Tell frontend the sync is starting ---
+    await manager.broadcast({"event": "sync_start"})
+
+    app_settings = await get_settings_dict(conn)
     active_prof = app_settings.get('active_profile', '1')
     api_id = app_settings.get(f'profile_{active_prof}_api_id')
 
@@ -296,7 +299,12 @@ async def sync_chatlist(client, conn):
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     seen_chat_ids = set()
     
+    # --- NEW: State trackers for the frontend UI ---
+    scanned_count = 0
+    sync_changes = []
+    
     async for dialog in client.iter_dialogs():
+        scanned_count += 1
         entity = dialog.entity
         chat_id = entity.id
         seen_chat_ids.add(chat_id)
@@ -324,6 +332,12 @@ async def sync_chatlist(client, conn):
         if chat_id in db_chats and db_chats[chat_id]['chat_name'] != current_name:
             old_name = db_chats[chat_id]['chat_name']
             logger.info(f"Detected name change for {chat_id}: {old_name} -> {current_name}")
+            
+            # --- NEW: Record change for UI ---
+            change_msg = f"Renamed: '{old_name}' → '{current_name}'"
+            sync_changes.append(change_msg)
+            await manager.broadcast({"event": "log", "message": change_msg})
+            
             await execute_rename_logic(conn, api_id, chat_id, old_name, current_name, app_settings)
             
         date_added = db_chats[chat_id]['date_added'] if chat_id in db_chats else current_time
@@ -336,6 +350,11 @@ async def sync_chatlist(client, conn):
             total_messages = db_last_msg_id
             is_history_wiped = True
             logger.warning(f"History wipe detected for {chat_id} ({current_name}). Metadata preserved but marked dead.")
+            
+            # --- NEW: Record wipe for UI ---
+            change_msg = f"History Wiped: '{current_name}' (Marked Dead)"
+            sync_changes.append(change_msg)
+            await manager.broadcast({"event": "log", "message": change_msg})
 
         chat_status_val = 0 if is_history_wiped else 1
 
@@ -350,6 +369,10 @@ async def sync_chatlist(client, conn):
         if is_history_wiped:
             await conn.execute("UPDATE chat_list SET enabled = 0 WHERE api_id = ? AND chat_id = ?", (api_id, chat_id))
 
+        # --- NEW: Broadcast progress state every 50 chats ---
+        if scanned_count % 50 == 0:
+            await manager.broadcast({"event": "sync_progress", "scanned": scanned_count, "changes": sync_changes})
+
     db_chat_ids = set(db_chats.keys())
     dead_chat_ids = db_chat_ids - seen_chat_ids
 
@@ -362,17 +385,25 @@ async def sync_chatlist(client, conn):
             SET chat_status = 0, enabled = 0 
             WHERE api_id = ? AND chat_id IN ({placeholders})
         ''', [api_id] + dead_list)
-        await manager.broadcast({"event": "log", "message": f"Auto-disabled {len(dead_chat_ids)} inaccessible/ghost chats."})
+        
+        # --- NEW: Record dead chats for UI ---
+        change_msg = f"Dead/Inaccessible: {len(dead_chat_ids)} chats disabled."
+        sync_changes.append(change_msg)
+        await manager.broadcast({"event": "log", "message": change_msg})
+
+    # --- NEW: Final UI Progress broadcast ---
+    await manager.broadcast({"event": "sync_progress", "scanned": scanned_count, "changes": sync_changes})
 
     await conn.commit()
     await update_total_downloaded(conn, api_id)
     
-    # --- NEW: Save the exact time the global sync completed ---
     await conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (f'profile_{active_prof}_last_global_sync', current_time))
     await conn.commit()
     
     logger.info("--- GLOBAL CHATLIST SYNC COMPLETE ---")
     await manager.broadcast({"event": "log", "message": "Database Updated."})
+    
+    await manager.broadcast({"event": "global_sync_complete"})
 
 async def sync_single_chat(client, conn, chat_id):
     app_settings = await get_settings_dict(conn)

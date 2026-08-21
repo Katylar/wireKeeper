@@ -28,7 +28,6 @@ export const WebSocketProvider = ({ children }) => {
             const data = await res.json();
             setSystemStatus(data);
 
-            // --- NEW: History updates immediately alongside System Status ---
             const histRes = await fetch(`${API_BASE}/history`);
             const histData = await histRes.json();
             setTaskHistory(histData);
@@ -38,7 +37,6 @@ export const WebSocketProvider = ({ children }) => {
     }, []);
 
     useEffect(() => {
-        // Runs cleanly on mount, executing both fetches from above
         refreshSystemStatus();
     }, [refreshSystemStatus]);
 
@@ -87,6 +85,9 @@ export const WebSocketProvider = ({ children }) => {
                 }
 
                 switch (data.event) {
+                    case "global_sync_complete":
+                        refreshSystemStatus();
+                        break;
                     case "log":
                     case "error":
                         setLogs((prev) => [
@@ -98,6 +99,20 @@ export const WebSocketProvider = ({ children }) => {
                             },
                         ]);
                         break;
+                    // --- NEW: Global Sync Listeners ---
+                    case "sync_start":
+                        setActiveScans((prev) => ({
+                            ...prev,
+                            global_sync: { scanned: 0, changes: [] },
+                        }));
+                        break;
+                    case "sync_progress":
+                        setActiveScans((prev) => ({
+                            ...prev,
+                            global_sync: { scanned: data.scanned, changes: data.changes },
+                        }));
+                        break;
+                    // ----------------------------------
                     case "scan_start":
                         setActiveScans((prev) => ({
                             ...prev,

@@ -103,8 +103,12 @@ export default function Layout() {
                                 fontWeight: "bold",
                                 opacity: isSwitching || isBusy ? 0.6 : 1,
                             }}>
-                            <option value="1">{systemStatus?.profile_1_name || "Account 1"}</option>
-                            <option value="2">{systemStatus?.profile_2_name || "Account 2"}</option>
+                            {/* --- NEW: Dynamic Account Iteration! --- */}
+                            {systemStatus?.accounts?.map((acc) => (
+                                <option key={acc.id} value={acc.id}>
+                                    {acc.name}
+                                </option>
+                            ))}
                         </select>
                     </div>
                 </div>

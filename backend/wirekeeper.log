@@ -60,3 +60,950 @@
 2026-08-21 21:36:50 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1199628034 ---
 2026-08-21 21:36:50 | INFO     | downloader   | [1199628034] Commencing Telegram message iteration starting from ID: 45275
 2026-08-21 21:36:51 | INFO     | downloader   | [1199628034] Found 6636 historically incomplete files in database. Appending to queue...
+2026-08-21 21:47:06 | INFO     | main         | Shutting down WireKeeper Engine...
+2026-08-21 21:47:06 | INFO     | main         | Shutdown complete.
+2026-08-21 21:47:06 | WARNING  | downloader   | [1199628034] Download Scan forcibly cancelled by System/User.
+2026-08-21 21:47:06 | ERROR    | downloader   | [1199628034] Failed to save activity history to DB: no active connection
+2026-08-21 21:47:06 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 1199628034 ---
+2026-08-21 21:47:06 | WARNING  | orchestrator | --- TASK ABORTED: download-chat (Cancelled by user/system) ---
+2026-08-21 21:48:52 | INFO     | main         | Initializing Database Pool...
+2026-08-21 21:48:52 | INFO     | main         | Database initialized successfully.
+2026-08-21 21:48:52 | INFO     | main         | Attempting to start Telegram Client for Profile 2 (Session: wirekeeper_session_2)...
+2026-08-21 21:48:52 | INFO     | main         | ✅ WireKeeper Engine Started Successfully (Active Profile: 2).
+2026-08-21 21:48:52 | INFO     | main         | Starting Orchestrator worker loop...
+2026-08-21 21:48:52 | INFO     | orchestrator | Orchestrator worker loop actively listening for tasks.
+2026-08-21 21:49:04 | INFO     | main         | --- ACCOUNT SWITCH INITIATED: Changing to Profile 1 ---
+2026-08-21 21:49:04 | WARNING  | orchestrator | Executing complete wipe of Orchestrator queue and active tasks!
+2026-08-21 21:49:04 | INFO     | main         | Disconnecting current Telegram client...
+2026-08-21 21:49:04 | INFO     | main         | Attempting to start Telegram Client for Profile 1 (Session: wirekeeper_session)...
+2026-08-21 21:49:05 | INFO     | main         | ✅ WireKeeper Engine Started Successfully (Active Profile: 1).
+2026-08-21 21:49:23 | INFO     | main         | Enqueued Global Sync All task via UI.
+2026-08-21 21:49:23 | INFO     | orchestrator | --- LAUNCHING TASK: sync-all ---
+2026-08-21 21:49:23 | INFO     | downloader   | --- STARTING GLOBAL CHATLIST SYNC ---
+2026-08-21 21:49:57 | WARNING  | downloader   | History wipe detected for 3633848028 (𝙋!𝙉𝘼𝙔 𝙎𝙊𝙐𝙍𝘾𝙀). Metadata preserved but marked dead.
+2026-08-21 21:49:58 | WARNING  | downloader   | History wipe detected for 2726017540 (🔥𝙱𝙴𝙻𝙾𝚆 𝟷𝟾🔥). Metadata preserved but marked dead.
+2026-08-21 21:49:58 | WARNING  | downloader   | History wipe detected for 3842405545 (E̶x̶c̶e̶p̶t̶i̶o̶n̶a̶l̶ L̶u̶n̶a̶). Metadata preserved but marked dead.
+2026-08-21 21:49:59 | WARNING  | downloader   | History wipe detected for 3530704592 (NIGHT PARTY). Metadata preserved but marked dead.
+2026-08-21 21:50:26 | WARNING  | downloader   | History wipe detected for 3495611102 (𝑩𝑨𝑮𝑺𝑨𝑲𝑨𝑵 𝑵𝑮 𝑬𝑺𝑻𝑼𝑫𝒀𝑨𝑵𝑻𝑬). Metadata preserved but marked dead.
+2026-08-21 21:50:26 | WARNING  | downloader   | History wipe detected for 1801160866 (CUM ON FOOD / SWALLOW). Metadata preserved but marked dead.
+2026-08-21 21:50:26 | WARNING  | downloader   | History wipe detected for 3745977183 (𝑩𝑨𝑮𝑺𝑨𝑲𝑨𝑵 𝑵𝑮 𝑬𝑺𝑻𝑼𝑫𝒀𝑨𝑵𝑻𝑬). Metadata preserved but marked dead.
+2026-08-21 21:50:26 | WARNING  | downloader   | History wipe detected for 3497038163 (SP4DE PREMIUM META). Metadata preserved but marked dead.
+2026-08-21 21:50:26 | WARNING  | downloader   | History wipe detected for 3544089486 (FUN ONLY). Metadata preserved but marked dead.
+2026-08-21 21:50:26 | WARNING  | downloader   | History wipe detected for 3884266868 (PINAYLEAK 3.0). Metadata preserved but marked dead.
+2026-08-21 21:50:26 | WARNING  | downloader   | History wipe detected for 2889156809 (OME TV [FREE]). Metadata preserved but marked dead.
+2026-08-21 21:50:27 | WARNING  | downloader   | History wipe detected for 1707509987 (Dark Paradise Random Leak). Metadata preserved but marked dead.
+2026-08-21 21:50:27 | WARNING  | downloader   | History wipe detected for 2818832413 (.-. ..- ... .. / ... .... --- .-- .-. --- --- --). Metadata preserved but marked dead.
+2026-08-21 21:50:27 | WARNING  | downloader   | History wipe detected for 3518115357 (𝚂𝚃. 𝙶𝙴𝚁𝚁𝙰𝚁𝙳 𝙲𝙾𝙽𝚂𝚃𝚁𝚄𝙲𝚃𝙸𝙾𝙽). Metadata preserved but marked dead.
+2026-08-21 21:50:27 | WARNING  | downloader   | History wipe detected for 2697595297 (𝐎𝐌𝐄 𝐏𝐇). Metadata preserved but marked dead.
+2026-08-21 21:50:27 | WARNING  | downloader   | History wipe detected for 2696058965 (𝚄𝚂𝙴𝙲 𝙲𝙰𝚃𝙷𝚈 𝙲𝙰𝙱𝚁𝙰𝙻 𝙵𝙸𝙻𝙴𝚂). Metadata preserved but marked dead.
+2026-08-21 21:50:28 | WARNING  | downloader   | History wipe detected for 3321663674 (𝙳𝚎𝚊𝚗'𝚜 𝙻𝚒𝚜𝚝). Metadata preserved but marked dead.
+2026-08-21 21:51:29 | WARNING  | downloader   | History wipe detected for 2377486489 (Pinay hub premium). Metadata preserved but marked dead.
+2026-08-21 21:53:03 | WARNING  | downloader   | History wipe detected for 1490976537 (Pnay Lapagan V.2). Metadata preserved but marked dead.
+2026-08-21 21:56:08 | INFO     | downloader   | Auto-disabling 71 inaccessible/ghost chats.
+2026-08-21 21:56:08 | INFO     | downloader   | --- GLOBAL CHATLIST SYNC COMPLETE ---
+2026-08-21 21:56:08 | INFO     | orchestrator | --- TASK COMPLETED: sync-all ---
+2026-08-21 21:56:22 | INFO     | main         | Shutting down WireKeeper Engine...
+2026-08-21 21:56:22 | INFO     | main         | Shutdown complete.
+2026-08-21 21:56:24 | INFO     | main         | Initializing Database Pool...
+2026-08-21 21:56:24 | INFO     | main         | Database initialized successfully.
+2026-08-21 21:56:24 | INFO     | main         | Attempting to start Telegram Client for Profile 1 (Session: wirekeeper_session)...
+2026-08-21 21:56:24 | INFO     | main         | ✅ WireKeeper Engine Started Successfully (Active Profile: 1).
+2026-08-21 21:56:24 | INFO     | main         | Starting Orchestrator worker loop...
+2026-08-21 21:56:24 | INFO     | orchestrator | Orchestrator worker loop actively listening for tasks.
+2026-08-21 21:56:40 | INFO     | main         | Shutting down WireKeeper Engine...
+2026-08-21 21:56:40 | INFO     | main         | Shutdown complete.
+2026-08-21 21:56:42 | INFO     | main         | Initializing Database Pool...
+2026-08-21 21:56:42 | INFO     | main         | Database initialized successfully.
+2026-08-21 21:56:42 | INFO     | main         | Attempting to start Telegram Client for Profile 1 (Session: wirekeeper_session)...
+2026-08-21 21:56:42 | INFO     | main         | ✅ WireKeeper Engine Started Successfully (Active Profile: 1).
+2026-08-21 21:56:42 | INFO     | main         | Starting Orchestrator worker loop...
+2026-08-21 21:56:42 | INFO     | orchestrator | Orchestrator worker loop actively listening for tasks.
+2026-08-21 21:57:46 | INFO     | main         | Shutting down WireKeeper Engine...
+2026-08-21 21:57:46 | INFO     | main         | Shutdown complete.
+2026-08-21 21:57:48 | INFO     | main         | Initializing Database Pool...
+2026-08-21 21:57:48 | INFO     | main         | Database initialized successfully.
+2026-08-21 21:57:48 | INFO     | main         | Attempting to start Telegram Client for Profile 1 (Session: wirekeeper_session)...
+2026-08-21 21:57:48 | INFO     | main         | ✅ WireKeeper Engine Started Successfully (Active Profile: 1).
+2026-08-21 21:57:48 | INFO     | main         | Starting Orchestrator worker loop...
+2026-08-21 21:57:48 | INFO     | orchestrator | Orchestrator worker loop actively listening for tasks.
+2026-08-21 21:58:29 | INFO     | main         | Shutting down WireKeeper Engine...
+2026-08-21 21:58:29 | INFO     | main         | Shutdown complete.
+2026-08-21 21:58:34 | INFO     | main         | Initializing Database Pool...
+2026-08-21 21:58:34 | INFO     | main         | Database initialized successfully.
+2026-08-21 21:58:34 | INFO     | main         | Attempting to start Telegram Client for Profile 1 (Session: wirekeeper_session)...
+2026-08-21 21:58:35 | INFO     | main         | ✅ WireKeeper Engine Started Successfully (Active Profile: 1).
+2026-08-21 21:58:35 | INFO     | main         | Starting Orchestrator worker loop...
+2026-08-21 21:58:35 | INFO     | orchestrator | Orchestrator worker loop actively listening for tasks.
+2026-08-21 22:08:28 | INFO     | main         | INITIATING BATCH 05c3307a-e791-4a61-9610-f05064039ea0: Queuing 116 chats for processing.
+2026-08-21 22:08:28 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:28 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3336230081 ---
+2026-08-21 22:08:29 | INFO     | downloader   | [3336230081] Commencing Telegram message iteration starting from ID: 23
+2026-08-21 22:08:29 | INFO     | downloader   | [3336230081] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:29 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3336230081 ---
+2026-08-21 22:08:29 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:29 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:29 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3874506382 ---
+2026-08-21 22:08:29 | INFO     | downloader   | [3874506382] Commencing Telegram message iteration starting from ID: 185
+2026-08-21 22:08:29 | INFO     | downloader   | [3874506382] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:29 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3874506382 ---
+2026-08-21 22:08:29 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:29 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:29 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3839829105 ---
+2026-08-21 22:08:29 | INFO     | downloader   | [3839829105] Commencing Telegram message iteration starting from ID: 62
+2026-08-21 22:08:29 | INFO     | downloader   | [3839829105] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:29 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3839829105 ---
+2026-08-21 22:08:29 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:29 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:29 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3953108936 ---
+2026-08-21 22:08:29 | INFO     | downloader   | [3953108936] Commencing Telegram message iteration starting from ID: 17
+2026-08-21 22:08:29 | INFO     | downloader   | [3953108936] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:29 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3953108936 ---
+2026-08-21 22:08:29 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:29 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:29 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3496466772 ---
+2026-08-21 22:08:29 | INFO     | downloader   | [3496466772] Commencing Telegram message iteration starting from ID: 21
+2026-08-21 22:08:29 | INFO     | downloader   | [3496466772] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:29 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3496466772 ---
+2026-08-21 22:08:29 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:29 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:29 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3701583381 ---
+2026-08-21 22:08:30 | INFO     | downloader   | [3701583381] Commencing Telegram message iteration starting from ID: 41
+2026-08-21 22:08:30 | INFO     | downloader   | [3701583381] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:30 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3701583381 ---
+2026-08-21 22:08:30 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:30 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:30 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3657472462 ---
+2026-08-21 22:08:30 | INFO     | downloader   | [3657472462] Commencing Telegram message iteration starting from ID: 183
+2026-08-21 22:08:30 | INFO     | downloader   | [3657472462] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:30 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3657472462 ---
+2026-08-21 22:08:30 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:30 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:30 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3887871248 ---
+2026-08-21 22:08:30 | INFO     | downloader   | [3887871248] Commencing Telegram message iteration starting from ID: 287
+2026-08-21 22:08:30 | INFO     | downloader   | [3887871248] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:30 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3887871248 ---
+2026-08-21 22:08:30 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:30 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:30 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3603549829 ---
+2026-08-21 22:08:30 | INFO     | downloader   | [3603549829] Commencing Telegram message iteration starting from ID: 260
+2026-08-21 22:08:30 | INFO     | downloader   | [3603549829] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:30 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3603549829 ---
+2026-08-21 22:08:30 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:30 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:30 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3639059843 ---
+2026-08-21 22:08:30 | INFO     | downloader   | [3639059843] Commencing Telegram message iteration starting from ID: 258
+2026-08-21 22:08:31 | INFO     | downloader   | [3639059843] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:31 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3639059843 ---
+2026-08-21 22:08:31 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:31 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:31 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3690801205 ---
+2026-08-21 22:08:31 | INFO     | downloader   | [3690801205] Commencing Telegram message iteration starting from ID: 188
+2026-08-21 22:08:31 | INFO     | downloader   | [3690801205] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:31 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3690801205 ---
+2026-08-21 22:08:31 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:31 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:31 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3701255796 ---
+2026-08-21 22:08:31 | INFO     | downloader   | [3701255796] Commencing Telegram message iteration starting from ID: 93
+2026-08-21 22:08:31 | INFO     | downloader   | [3701255796] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:31 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3701255796 ---
+2026-08-21 22:08:31 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:31 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:31 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3719778153 ---
+2026-08-21 22:08:31 | INFO     | downloader   | [3719778153] Commencing Telegram message iteration starting from ID: 95
+2026-08-21 22:08:31 | INFO     | downloader   | [3719778153] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:31 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3719778153 ---
+2026-08-21 22:08:31 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:31 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:31 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3738561035 ---
+2026-08-21 22:08:31 | INFO     | downloader   | [3738561035] Commencing Telegram message iteration starting from ID: 89
+2026-08-21 22:08:31 | INFO     | downloader   | [3738561035] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:31 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3738561035 ---
+2026-08-21 22:08:31 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:31 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:31 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3809028803 ---
+2026-08-21 22:08:32 | INFO     | downloader   | [3809028803] Commencing Telegram message iteration starting from ID: 188
+2026-08-21 22:08:32 | INFO     | downloader   | [3809028803] SCAN COMPLETE. Queued 1 files for actual download. Skipped: 0
+2026-08-21 22:08:38 | INFO     | downloader   | ✅ [3809028803] Download Success: 189_sex tg2.mp4
+2026-08-21 22:08:39 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3809028803 ---
+2026-08-21 22:08:39 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:39 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:39 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3843028681 ---
+2026-08-21 22:08:39 | INFO     | downloader   | [3843028681] Commencing Telegram message iteration starting from ID: 186
+2026-08-21 22:08:39 | INFO     | downloader   | [3843028681] SCAN COMPLETE. Queued 1 files for actual download. Skipped: 0
+2026-08-21 22:08:45 | INFO     | downloader   | ✅ [3843028681] Download Success: 187_sex tg2.mp4
+2026-08-21 22:08:46 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3843028681 ---
+2026-08-21 22:08:46 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:46 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:46 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3845595046 ---
+2026-08-21 22:08:46 | INFO     | downloader   | [3845595046] Commencing Telegram message iteration starting from ID: 188
+2026-08-21 22:08:46 | INFO     | downloader   | [3845595046] SCAN COMPLETE. Queued 2 files for actual download. Skipped: 0
+2026-08-21 22:08:46 | INFO     | downloader   | ✅ [3845595046] Download Success: 195_3845595046_1787286434.jpg
+2026-08-21 22:08:47 | INFO     | downloader   | ✅ [3845595046] Download Success: 194_3845595046_1787286434.jpg
+2026-08-21 22:08:48 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3845595046 ---
+2026-08-21 22:08:48 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:48 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:48 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3718503907 ---
+2026-08-21 22:08:48 | INFO     | downloader   | [3718503907] Commencing Telegram message iteration starting from ID: 65
+2026-08-21 22:08:48 | INFO     | downloader   | [3718503907] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:48 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3718503907 ---
+2026-08-21 22:08:48 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:48 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:48 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3777577093 ---
+2026-08-21 22:08:48 | INFO     | downloader   | [3777577093] Commencing Telegram message iteration starting from ID: 103
+2026-08-21 22:08:48 | INFO     | downloader   | [3777577093] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:48 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3777577093 ---
+2026-08-21 22:08:48 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:48 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:48 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3803665193 ---
+2026-08-21 22:08:48 | INFO     | downloader   | [3803665193] Commencing Telegram message iteration starting from ID: 94
+2026-08-21 22:08:48 | INFO     | downloader   | [3803665193] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:48 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3803665193 ---
+2026-08-21 22:08:48 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:48 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:48 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3805175140 ---
+2026-08-21 22:08:49 | INFO     | downloader   | [3805175140] Commencing Telegram message iteration starting from ID: 94
+2026-08-21 22:08:49 | INFO     | downloader   | [3805175140] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:49 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3805175140 ---
+2026-08-21 22:08:49 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:49 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:49 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3868539920 ---
+2026-08-21 22:08:49 | INFO     | downloader   | [3868539920] Commencing Telegram message iteration starting from ID: 91
+2026-08-21 22:08:49 | INFO     | downloader   | [3868539920] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:49 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3868539920 ---
+2026-08-21 22:08:49 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:49 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:49 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3843347223 ---
+2026-08-21 22:08:49 | INFO     | downloader   | [3843347223] Commencing Telegram message iteration starting from ID: 3475
+2026-08-21 22:08:49 | INFO     | downloader   | [3843347223] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:49 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3843347223 ---
+2026-08-21 22:08:49 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:49 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:49 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1534901721 ---
+2026-08-21 22:08:49 | INFO     | downloader   | [1534901721] Commencing Telegram message iteration starting from ID: 29
+2026-08-21 22:08:49 | INFO     | downloader   | [1534901721] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:49 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 1534901721 ---
+2026-08-21 22:08:49 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:49 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:49 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3811945226 ---
+2026-08-21 22:08:49 | INFO     | downloader   | [3811945226] Commencing Telegram message iteration starting from ID: 339
+2026-08-21 22:08:50 | INFO     | downloader   | [3811945226] Found 1 historically incomplete files in database. Appending to queue...
+2026-08-21 22:08:50 | INFO     | downloader   | [3811945226] SCAN COMPLETE. Queued 2 files for actual download. Skipped: 0
+2026-08-21 22:08:50 | INFO     | downloader   | ✅ [3811945226] Download Success: 343_3811945226_1787286710.jpg
+2026-08-21 22:08:50 | INFO     | downloader   | ✅ [3811945226] Download Success: 342_3811945226_1787286709.jpg
+2026-08-21 22:08:51 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3811945226 ---
+2026-08-21 22:08:51 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:51 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:51 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3650310293 ---
+2026-08-21 22:08:51 | INFO     | downloader   | [3650310293] Commencing Telegram message iteration starting from ID: 136
+2026-08-21 22:08:51 | INFO     | downloader   | [3650310293] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:51 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3650310293 ---
+2026-08-21 22:08:51 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:51 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:51 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3715619642 ---
+2026-08-21 22:08:52 | INFO     | downloader   | [3715619642] Commencing Telegram message iteration starting from ID: 258
+2026-08-21 22:08:52 | INFO     | downloader   | [3715619642] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:52 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3715619642 ---
+2026-08-21 22:08:52 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:52 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:52 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3759003082 ---
+2026-08-21 22:08:52 | INFO     | downloader   | [3759003082] Commencing Telegram message iteration starting from ID: 144
+2026-08-21 22:08:52 | INFO     | downloader   | [3759003082] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:52 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3759003082 ---
+2026-08-21 22:08:52 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:52 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:52 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3817518651 ---
+2026-08-21 22:08:52 | INFO     | downloader   | [3817518651] Commencing Telegram message iteration starting from ID: 340
+2026-08-21 22:08:52 | INFO     | downloader   | [3817518651] Found 1 historically incomplete files in database. Appending to queue...
+2026-08-21 22:08:52 | INFO     | downloader   | [3817518651] SCAN COMPLETE. Queued 2 files for actual download. Skipped: 0
+2026-08-21 22:08:52 | INFO     | downloader   | ✅ [3817518651] Download Success: 344_3817518651_1787286710.jpg
+2026-08-21 22:08:53 | INFO     | downloader   | ✅ [3817518651] Download Success: 343_3817518651_1787286710.jpg
+2026-08-21 22:08:54 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3817518651 ---
+2026-08-21 22:08:54 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:54 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:54 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3332412877 ---
+2026-08-21 22:08:54 | INFO     | downloader   | [3332412877] Commencing Telegram message iteration starting from ID: 729
+2026-08-21 22:08:54 | INFO     | downloader   | [3332412877] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:54 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3332412877 ---
+2026-08-21 22:08:54 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:54 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:54 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3392312668 ---
+2026-08-21 22:08:54 | INFO     | downloader   | [3392312668] Commencing Telegram message iteration starting from ID: 731
+2026-08-21 22:08:54 | INFO     | downloader   | [3392312668] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:54 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3392312668 ---
+2026-08-21 22:08:54 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:54 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:54 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3366246474 ---
+2026-08-21 22:08:54 | INFO     | downloader   | [3366246474] Commencing Telegram message iteration starting from ID: 685
+2026-08-21 22:08:55 | INFO     | downloader   | [3366246474] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:55 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3366246474 ---
+2026-08-21 22:08:55 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:55 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:55 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3413355225 ---
+2026-08-21 22:08:55 | INFO     | downloader   | [3413355225] Commencing Telegram message iteration starting from ID: 1286
+2026-08-21 22:08:55 | INFO     | downloader   | [3413355225] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:55 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3413355225 ---
+2026-08-21 22:08:55 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:55 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:55 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3354389075 ---
+2026-08-21 22:08:55 | INFO     | downloader   | [3354389075] Commencing Telegram message iteration starting from ID: 1290
+2026-08-21 22:08:55 | INFO     | downloader   | [3354389075] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:55 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3354389075 ---
+2026-08-21 22:08:55 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:55 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:55 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3336145761 ---
+2026-08-21 22:08:55 | INFO     | downloader   | [3336145761] Commencing Telegram message iteration starting from ID: 1247
+2026-08-21 22:08:56 | INFO     | downloader   | [3336145761] Found 2 historically incomplete files in database. Appending to queue...
+2026-08-21 22:08:56 | INFO     | downloader   | [3336145761] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:08:56 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3336145761 ---
+2026-08-21 22:08:56 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:08:56 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:08:56 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3825859768 ---
+2026-08-21 22:08:56 | INFO     | downloader   | [3825859768] Commencing Telegram message iteration starting from ID: 133
+2026-08-21 22:08:56 | INFO     | downloader   | [3825859768] SCAN COMPLETE. Queued 9 files for actual download. Skipped: 0
+2026-08-21 22:08:56 | INFO     | downloader   | ✅ [3825859768] Download Success: 140_3825859768_1787174892.jpg
+2026-08-21 22:08:57 | INFO     | downloader   | ✅ [3825859768] Download Success: 138_3825859768_1787174892.jpg
+2026-08-21 22:08:57 | INFO     | downloader   | ✅ [3825859768] Download Success: 136_3825859768_1787174892.jpg
+2026-08-21 22:08:58 | INFO     | downloader   | ✅ [3825859768] Download Success: 134_3825859768_1787174891.jpg
+2026-08-21 22:09:03 | INFO     | downloader   | ✅ [3825859768] Download Success: 147_sex tg2.mp4
+2026-08-21 22:09:24 | INFO     | downloader   | ✅ [3825859768] Download Success: 141_6EX- Casey Jazlyn.zip
+2026-08-21 22:09:25 | INFO     | downloader   | ✅ [3825859768] Download Success: 139_6EX-Mikaela Reyes.zip
+2026-08-21 22:09:50 | INFO     | downloader   | ✅ [3825859768] Download Success: 135_6EX - Karen.zip
+2026-08-21 22:10:05 | INFO     | downloader   | ✅ [3825859768] Download Success: 137_6EX-Anya Limjoco.zip
+2026-08-21 22:10:06 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3825859768 ---
+2026-08-21 22:10:06 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:10:06 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:10:06 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3434329650 ---
+2026-08-21 22:10:06 | INFO     | downloader   | [3434329650] Commencing Telegram message iteration starting from ID: 707
+2026-08-21 22:10:06 | INFO     | downloader   | [3434329650] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:10:06 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3434329650 ---
+2026-08-21 22:10:06 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:10:06 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:10:06 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3728720817 ---
+2026-08-21 22:10:06 | INFO     | downloader   | [3728720817] Commencing Telegram message iteration starting from ID: 136
+2026-08-21 22:10:06 | INFO     | downloader   | [3728720817] SCAN COMPLETE. Queued 9 files for actual download. Skipped: 0
+2026-08-21 22:10:06 | INFO     | downloader   | ✅ [3728720817] Download Success: 143_3728720817_1787174874.jpg
+2026-08-21 22:10:07 | INFO     | downloader   | ✅ [3728720817] Download Success: 141_3728720817_1787174874.jpg
+2026-08-21 22:10:07 | INFO     | downloader   | ✅ [3728720817] Download Success: 139_3728720817_1787174874.jpg
+2026-08-21 22:10:08 | INFO     | downloader   | ✅ [3728720817] Download Success: 137_3728720817_1787174874.jpg
+2026-08-21 22:10:12 | INFO     | downloader   | ✅ [3728720817] Download Success: 150_sex tg2.mp4
+2026-08-21 22:10:46 | INFO     | downloader   | ✅ [3728720817] Download Success: 144_6EX - Mari Lanchita.zip
+2026-08-21 22:10:46 | INFO     | downloader   | ✅ [3728720817] Download Success: 142_6EX-Merrylan Santos.zip
+2026-08-21 22:11:20 | INFO     | downloader   | ✅ [3728720817] Download Success: 140_6EX - Ibiza Gutierrez.zip
+2026-08-21 22:11:41 | INFO     | downloader   | ✅ [3728720817] Download Success: 138_6EX- Mariel Kaye.zip
+2026-08-21 22:11:41 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3728720817 ---
+2026-08-21 22:11:41 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:11:42 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:11:42 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3174557347 ---
+2026-08-21 22:11:42 | INFO     | downloader   | [3174557347] Commencing Telegram message iteration starting from ID: 1249
+2026-08-21 22:11:42 | INFO     | downloader   | [3174557347] Found 2 historically incomplete files in database. Appending to queue...
+2026-08-21 22:11:42 | INFO     | downloader   | [3174557347] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:11:42 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3174557347 ---
+2026-08-21 22:11:42 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:11:42 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:11:42 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3349890275 ---
+2026-08-21 22:11:42 | INFO     | downloader   | [3349890275] Commencing Telegram message iteration starting from ID: 1250
+2026-08-21 22:11:42 | INFO     | downloader   | [3349890275] Found 2 historically incomplete files in database. Appending to queue...
+2026-08-21 22:11:42 | INFO     | downloader   | [3349890275] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:11:42 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3349890275 ---
+2026-08-21 22:11:42 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:11:42 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:11:42 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3446214261 ---
+2026-08-21 22:11:42 | INFO     | downloader   | [3446214261] Commencing Telegram message iteration starting from ID: 1251
+2026-08-21 22:11:43 | INFO     | downloader   | [3446214261] Found 2 historically incomplete files in database. Appending to queue...
+2026-08-21 22:11:43 | INFO     | downloader   | [3446214261] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:11:43 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3446214261 ---
+2026-08-21 22:11:43 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:11:43 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:11:43 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3478134929 ---
+2026-08-21 22:11:43 | INFO     | downloader   | [3478134929] Commencing Telegram message iteration starting from ID: 744
+2026-08-21 22:11:43 | INFO     | downloader   | [3478134929] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:11:43 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3478134929 ---
+2026-08-21 22:11:43 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:11:43 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:11:43 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3741442524 ---
+2026-08-21 22:11:43 | INFO     | downloader   | [3741442524] Commencing Telegram message iteration starting from ID: 48712
+2026-08-21 22:11:44 | INFO     | downloader   | [3741442524] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:11:44 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3741442524 ---
+2026-08-21 22:11:44 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:11:44 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:11:44 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2615640611 ---
+2026-08-21 22:11:44 | INFO     | downloader   | [2615640611] Commencing Telegram message iteration starting from ID: 256
+2026-08-21 22:11:44 | INFO     | downloader   | [2615640611] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:11:44 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2615640611 ---
+2026-08-21 22:11:44 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:11:44 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:11:44 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2093556218 ---
+2026-08-21 22:11:44 | INFO     | downloader   | [2093556218] Commencing Telegram message iteration starting from ID: 44
+2026-08-21 22:11:44 | INFO     | downloader   | [2093556218] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:11:44 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2093556218 ---
+2026-08-21 22:11:44 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:11:44 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:11:44 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3762755423 ---
+2026-08-21 22:11:45 | INFO     | downloader   | [3762755423] Commencing Telegram message iteration starting from ID: 371
+2026-08-21 22:11:45 | INFO     | downloader   | [3762755423] Found 1 historically incomplete files in database. Appending to queue...
+2026-08-21 22:11:45 | INFO     | downloader   | [3762755423] SCAN COMPLETE. Queued 2 files for actual download. Skipped: 0
+2026-08-21 22:11:45 | INFO     | downloader   | ✅ [3762755423] Download Success: 375_3762755423_1787286710.jpg
+2026-08-21 22:11:45 | INFO     | downloader   | ✅ [3762755423] Download Success: 374_3762755423_1787286709.jpg
+2026-08-21 22:11:46 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3762755423 ---
+2026-08-21 22:11:46 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:11:46 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:11:46 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3909545602 ---
+2026-08-21 22:11:47 | INFO     | downloader   | [3909545602] Commencing Telegram message iteration starting from ID: 0
+2026-08-21 22:11:48 | INFO     | downloader   | [3909545602] SCAN COMPLETE. Queued 23 files for actual download. Skipped: 0
+2026-08-21 22:11:48 | INFO     | downloader   | ✅ [3909545602] Download Success: 127_3909545602_1787317759.jpg
+2026-08-21 22:11:48 | INFO     | downloader   | ✅ [3909545602] Download Success: 130_3909545602_1787320733.mp4
+2026-08-21 22:11:48 | INFO     | downloader   | ✅ [3909545602] Download Success: 126_3909545602_1787312114.jpg
+2026-08-21 22:11:49 | INFO     | downloader   | ✅ [3909545602] Download Success: 124_3909545602_1787295111.jpg
+2026-08-21 22:11:49 | INFO     | downloader   | ✅ [3909545602] Download Success: 123_3909545602_1787295111.jpg
+2026-08-21 22:11:50 | INFO     | downloader   | ✅ [3909545602] Download Success: 121_3909545602_1787287806.jpg
+2026-08-21 22:11:50 | INFO     | downloader   | ✅ [3909545602] Download Success: 108_3909545602_1787230182.jpg
+2026-08-21 22:11:51 | INFO     | downloader   | ✅ [3909545602] Download Success: 67_3909545602_1786967674.jpg
+2026-08-21 22:11:51 | INFO     | downloader   | ✅ [3909545602] Download Success: 129_3909545602_1787320733.mp4
+2026-08-21 22:11:52 | INFO     | downloader   | ✅ [3909545602] Download Success: 65_3909545602_1786967585.jpg
+2026-08-21 22:11:52 | INFO     | downloader   | ✅ [3909545602] Download Success: 52_3909545602_1786805909.jpg
+2026-08-21 22:11:52 | INFO     | downloader   | ✅ [3909545602] Download Success: 49_3909545602_1786805074.jpg
+2026-08-21 22:11:53 | INFO     | downloader   | ✅ [3909545602] Download Success: 39_3909545602_1786699224.jpg
+2026-08-21 22:11:53 | INFO     | downloader   | ✅ [3909545602] Download Success: 34_3909545602_1786692183.jpg
+2026-08-21 22:11:54 | INFO     | downloader   | ✅ [3909545602] Download Success: 21_3909545602_1786585753.jpg
+2026-08-21 22:12:32 | INFO     | downloader   | ✅ [3909545602] Download Success: 50_IMG_5022.MP4
+2026-08-21 22:12:42 | INFO     | downloader   | ✅ [3909545602] Download Success: 66_Yna Ducay.zip
+2026-08-21 22:12:52 | INFO     | downloader   | ✅ [3909545602] Download Success: 27_IMG_5022.MP4
+2026-08-21 22:12:57 | INFO     | downloader   | ✅ [3909545602] Download Success: 51_Jackielyn Magnaye.zip
+2026-08-21 22:13:18 | INFO     | downloader   | ✅ [3909545602] Download Success: 22_IMG_5015.MP4
+2026-08-21 22:13:38 | INFO     | downloader   | ✅ [3909545602] Download Success: 16_xz 6.mp4
+2026-08-21 22:13:52 | INFO     | downloader   | ✅ [3909545602] Download Success: 23_Maribelle.zip
+2026-08-21 22:13:54 | INFO     | downloader   | ✅ [3909545602] Download Success: 15_video_2026-08-13_00-40-08.mp4
+2026-08-21 22:13:54 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3909545602 ---
+2026-08-21 22:13:54 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:13:54 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:13:54 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3921298421 ---
+2026-08-21 22:13:54 | INFO     | downloader   | [3921298421] Commencing Telegram message iteration starting from ID: 95
+2026-08-21 22:13:54 | INFO     | downloader   | [3921298421] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:13:55 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3921298421 ---
+2026-08-21 22:13:55 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:13:55 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:13:55 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1931375990 ---
+2026-08-21 22:13:55 | INFO     | downloader   | [1931375990] Commencing Telegram message iteration starting from ID: 52
+2026-08-21 22:13:55 | INFO     | downloader   | [1931375990] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:13:55 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 1931375990 ---
+2026-08-21 22:13:55 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:13:55 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:13:55 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3824558013 ---
+2026-08-21 22:13:55 | INFO     | downloader   | [3824558013] Commencing Telegram message iteration starting from ID: 145
+2026-08-21 22:13:55 | INFO     | downloader   | [3824558013] SCAN COMPLETE. Queued 9 files for actual download. Skipped: 0
+2026-08-21 22:13:55 | INFO     | downloader   | ✅ [3824558013] Download Success: 152_3824558013_1787174924.jpg
+2026-08-21 22:13:56 | INFO     | downloader   | ✅ [3824558013] Download Success: 150_3824558013_1787174923.jpg
+2026-08-21 22:13:56 | INFO     | downloader   | ✅ [3824558013] Download Success: 148_3824558013_1787174923.jpg
+2026-08-21 22:13:57 | INFO     | downloader   | ✅ [3824558013] Download Success: 146_3824558013_1787174923.jpg
+2026-08-21 22:14:01 | INFO     | downloader   | ✅ [3824558013] Download Success: 159_sex tg2.mp4
+2026-08-21 22:14:08 | INFO     | downloader   | ✅ [3824558013] Download Success: 153_6EX - Amaya shin.zip
+2026-08-21 22:14:48 | INFO     | downloader   | ✅ [3824558013] Download Success: 151_6EX-Christina Benitez.zip
+2026-08-21 22:15:00 | INFO     | downloader   | ✅ [3824558013] Download Success: 149_6EX-Kim Saguinsin.zip
+2026-08-21 22:18:46 | INFO     | downloader   | ✅ [3824558013] Download Success: 147_6EX-Bimm Parida.zip
+2026-08-21 22:18:47 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3824558013 ---
+2026-08-21 22:18:47 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:18:47 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:18:47 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3314207789 ---
+2026-08-21 22:18:47 | INFO     | downloader   | [3314207789] Commencing Telegram message iteration starting from ID: 1545
+2026-08-21 22:18:47 | INFO     | downloader   | [3314207789] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:18:48 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3314207789 ---
+2026-08-21 22:18:48 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:18:48 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:18:48 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3395834816 ---
+2026-08-21 22:18:48 | INFO     | downloader   | [3395834816] Commencing Telegram message iteration starting from ID: 1027
+2026-08-21 22:18:48 | INFO     | downloader   | [3395834816] SCAN COMPLETE. Queued 3 files for actual download. Skipped: 0
+2026-08-21 22:18:48 | INFO     | downloader   | ✅ [3395834816] Download Success: 1035_3395834816_1787261622.jpg
+2026-08-21 22:18:48 | INFO     | downloader   | ✅ [3395834816] Download Success: 1034_3395834816_1787261622.jpg
+2026-08-21 22:18:49 | INFO     | downloader   | ✅ [3395834816] Download Success: 1033_3395834816_1787261622.jpg
+2026-08-21 22:18:50 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3395834816 ---
+2026-08-21 22:18:50 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:18:50 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:18:50 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3263817422 ---
+2026-08-21 22:18:50 | INFO     | downloader   | [3263817422] Commencing Telegram message iteration starting from ID: 1308
+2026-08-21 22:18:50 | INFO     | downloader   | [3263817422] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:18:50 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3263817422 ---
+2026-08-21 22:18:50 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:18:50 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:18:50 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3763177033 ---
+2026-08-21 22:18:50 | INFO     | downloader   | [3763177033] Commencing Telegram message iteration starting from ID: 278
+2026-08-21 22:18:51 | INFO     | downloader   | [3763177033] Found 6 historically incomplete files in database. Appending to queue...
+2026-08-21 22:18:51 | INFO     | downloader   | [3763177033] SCAN COMPLETE. Queued 10 files for actual download. Skipped: 0
+2026-08-21 22:18:51 | INFO     | downloader   | ✅ [3763177033] Download Success: 286_3763177033_1787174948.jpg
+2026-08-21 22:18:51 | INFO     | downloader   | ✅ [3763177033] Download Success: 285_3763177033_1787174947.jpg
+2026-08-21 22:18:52 | INFO     | downloader   | ✅ [3763177033] Download Success: 283_3763177033_1787174947.jpg
+2026-08-21 22:18:52 | INFO     | downloader   | ✅ [3763177033] Download Success: 281_3763177033_1787174947.jpg
+2026-08-21 22:18:53 | INFO     | downloader   | ✅ [3763177033] Download Success: 279_3763177033_1787174947.jpg
+2026-08-21 22:18:57 | INFO     | downloader   | ✅ [3763177033] Download Success: 293_sex tg2.mp4
+2026-08-21 22:19:17 | INFO     | downloader   | ✅ [3763177033] Download Success: 287_6EX - Alyssa Mae Gomez.zip
+2026-08-21 22:19:23 | INFO     | downloader   | ✅ [3763177033] Download Success: 284_6EX - Yumi Ladringan.zip
+2026-08-21 22:20:02 | INFO     | downloader   | ✅ [3763177033] Download Success: 280_6EX - Cesi.zip
+2026-08-21 22:20:02 | INFO     | downloader   | ✅ [3763177033] Download Success: 282_6EX - Arvie laurora.zip
+2026-08-21 22:20:03 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3763177033 ---
+2026-08-21 22:20:03 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:03 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:03 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3648622920 ---
+2026-08-21 22:20:03 | INFO     | downloader   | [3648622920] Commencing Telegram message iteration starting from ID: 1039
+2026-08-21 22:20:03 | INFO     | downloader   | [3648622920] SCAN COMPLETE. Queued 3 files for actual download. Skipped: 0
+2026-08-21 22:20:03 | INFO     | downloader   | ✅ [3648622920] Download Success: 1047_3648622920_1787261622.jpg
+2026-08-21 22:20:04 | INFO     | downloader   | ✅ [3648622920] Download Success: 1046_3648622920_1787261622.jpg
+2026-08-21 22:20:04 | INFO     | downloader   | ✅ [3648622920] Download Success: 1045_3648622920_1787261622.jpg
+2026-08-21 22:20:05 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3648622920 ---
+2026-08-21 22:20:05 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:05 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:05 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1744389075 ---
+2026-08-21 22:20:05 | INFO     | downloader   | [1744389075] Commencing Telegram message iteration starting from ID: 74
+2026-08-21 22:20:05 | INFO     | downloader   | [1744389075] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:05 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 1744389075 ---
+2026-08-21 22:20:05 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:05 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:05 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2982427459 ---
+2026-08-21 22:20:06 | INFO     | downloader   | [2982427459] Commencing Telegram message iteration starting from ID: 1858
+2026-08-21 22:20:06 | INFO     | downloader   | [2982427459] Found 5 historically incomplete files in database. Appending to queue...
+2026-08-21 22:20:06 | INFO     | downloader   | [2982427459] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:06 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2982427459 ---
+2026-08-21 22:20:06 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:06 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:06 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3548732884 ---
+2026-08-21 22:20:06 | INFO     | downloader   | [3548732884] Commencing Telegram message iteration starting from ID: 1031
+2026-08-21 22:20:07 | INFO     | downloader   | [3548732884] Found 5 historically incomplete files in database. Appending to queue...
+2026-08-21 22:20:07 | INFO     | downloader   | [3548732884] SCAN COMPLETE. Queued 2 files for actual download. Skipped: 0
+2026-08-21 22:20:07 | INFO     | downloader   | ✅ [3548732884] Download Success: 1037_3548732884_1787286565.jpg
+2026-08-21 22:20:07 | INFO     | downloader   | ✅ [3548732884] Download Success: 1036_3548732884_1787286565.jpg
+2026-08-21 22:20:08 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3548732884 ---
+2026-08-21 22:20:08 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:08 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:08 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1805770146 ---
+2026-08-21 22:20:08 | INFO     | downloader   | [1805770146] Commencing Telegram message iteration starting from ID: 82
+2026-08-21 22:20:08 | INFO     | downloader   | [1805770146] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:08 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 1805770146 ---
+2026-08-21 22:20:08 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:08 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:08 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2019514698 ---
+2026-08-21 22:20:09 | INFO     | downloader   | [2019514698] Commencing Telegram message iteration starting from ID: 80
+2026-08-21 22:20:09 | INFO     | downloader   | [2019514698] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:09 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2019514698 ---
+2026-08-21 22:20:09 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:09 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:09 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3490803544 ---
+2026-08-21 22:20:09 | INFO     | downloader   | [3490803544] Commencing Telegram message iteration starting from ID: 2174
+2026-08-21 22:20:09 | INFO     | downloader   | [3490803544] SCAN COMPLETE. Queued 2 files for actual download. Skipped: 0
+2026-08-21 22:20:09 | INFO     | downloader   | ✅ [3490803544] Download Success: 2183_3490803544_1787286434.jpg
+2026-08-21 22:20:10 | INFO     | downloader   | ✅ [3490803544] Download Success: 2182_3490803544_1787286434.jpg
+2026-08-21 22:20:11 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3490803544 ---
+2026-08-21 22:20:11 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:11 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:11 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2098385923 ---
+2026-08-21 22:20:11 | INFO     | downloader   | [2098385923] Commencing Telegram message iteration starting from ID: 90
+2026-08-21 22:20:11 | INFO     | downloader   | [2098385923] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:11 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2098385923 ---
+2026-08-21 22:20:11 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:11 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:11 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 4420782327 ---
+2026-08-21 22:20:11 | INFO     | downloader   | [4420782327] Commencing Telegram message iteration starting from ID: 415
+2026-08-21 22:20:11 | INFO     | downloader   | [4420782327] SCAN COMPLETE. Queued 2 files for actual download. Skipped: 0
+2026-08-21 22:20:11 | INFO     | downloader   | ✅ [4420782327] Download Success: 436_4420782327_1787302571.jpg
+2026-08-21 22:20:12 | INFO     | downloader   | ✅ [4420782327] Download Success: 435_4420782327_1787302571.jpg
+2026-08-21 22:20:13 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 4420782327 ---
+2026-08-21 22:20:13 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:13 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:13 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3633475972 ---
+2026-08-21 22:20:13 | INFO     | downloader   | [3633475972] Commencing Telegram message iteration starting from ID: 1193
+2026-08-21 22:20:13 | INFO     | downloader   | [3633475972] Found 5 historically incomplete files in database. Appending to queue...
+2026-08-21 22:20:13 | INFO     | downloader   | [3633475972] SCAN COMPLETE. Queued 2 files for actual download. Skipped: 0
+2026-08-21 22:20:13 | INFO     | downloader   | ✅ [3633475972] Download Success: 1197_3633475972_1787286716.jpg
+2026-08-21 22:20:14 | INFO     | downloader   | ✅ [3633475972] Download Success: 1196_3633475972_1787286715.jpg
+2026-08-21 22:20:15 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3633475972 ---
+2026-08-21 22:20:15 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:15 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:15 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3633250473 ---
+2026-08-21 22:20:15 | INFO     | downloader   | [3633250473] Commencing Telegram message iteration starting from ID: 1059
+2026-08-21 22:20:15 | INFO     | downloader   | [3633250473] Found 5 historically incomplete files in database. Appending to queue...
+2026-08-21 22:20:15 | INFO     | downloader   | [3633250473] SCAN COMPLETE. Queued 2 files for actual download. Skipped: 0
+2026-08-21 22:20:16 | INFO     | downloader   | ✅ [3633250473] Download Success: 1063_3633250473_1787286716.jpg
+2026-08-21 22:20:16 | INFO     | downloader   | ✅ [3633250473] Download Success: 1062_3633250473_1787286715.jpg
+2026-08-21 22:20:17 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3633250473 ---
+2026-08-21 22:20:17 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:17 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:17 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2122419571 ---
+2026-08-21 22:20:17 | INFO     | downloader   | [2122419571] Commencing Telegram message iteration starting from ID: 108
+2026-08-21 22:20:17 | INFO     | downloader   | [2122419571] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:17 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2122419571 ---
+2026-08-21 22:20:17 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:17 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:17 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3994955108 ---
+2026-08-21 22:20:17 | INFO     | downloader   | [3994955108] Commencing Telegram message iteration starting from ID: 272
+2026-08-21 22:20:18 | INFO     | downloader   | [3994955108] SCAN COMPLETE. Queued 3 files for actual download. Skipped: 0
+2026-08-21 22:20:18 | INFO     | downloader   | ✅ [3994955108] Download Success: 275_3994955108_1787212035.jpg
+2026-08-21 22:20:18 | INFO     | downloader   | ✅ [3994955108] Download Success: 274_3994955108_1787212035.jpg
+2026-08-21 22:20:19 | INFO     | downloader   | ✅ [3994955108] Download Success: 273_3994955108_1787212035.jpg
+2026-08-21 22:20:20 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3994955108 ---
+2026-08-21 22:20:20 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:20 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:20 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2140460684 ---
+2026-08-21 22:20:20 | INFO     | downloader   | [2140460684] Commencing Telegram message iteration starting from ID: 113
+2026-08-21 22:20:20 | INFO     | downloader   | [2140460684] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:20 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2140460684 ---
+2026-08-21 22:20:20 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:20 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:20 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2067476820 ---
+2026-08-21 22:20:20 | INFO     | downloader   | [2067476820] Commencing Telegram message iteration starting from ID: 114
+2026-08-21 22:20:20 | INFO     | downloader   | [2067476820] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:20 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2067476820 ---
+2026-08-21 22:20:20 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:20 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:20 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3581819975 ---
+2026-08-21 22:20:20 | INFO     | downloader   | [3581819975] Commencing Telegram message iteration starting from ID: 2559
+2026-08-21 22:20:21 | INFO     | downloader   | [3581819975] SCAN COMPLETE. Queued 2 files for actual download. Skipped: 0
+2026-08-21 22:20:21 | INFO     | downloader   | ✅ [3581819975] Download Success: 2563_3581819975_1787286716.jpg
+2026-08-21 22:20:21 | INFO     | downloader   | ✅ [3581819975] Download Success: 2562_3581819975_1787286715.jpg
+2026-08-21 22:20:22 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3581819975 ---
+2026-08-21 22:20:22 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:22 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:22 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2092466898 ---
+2026-08-21 22:20:22 | INFO     | downloader   | [2092466898] Commencing Telegram message iteration starting from ID: 124
+2026-08-21 22:20:23 | INFO     | downloader   | [2092466898] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:23 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2092466898 ---
+2026-08-21 22:20:23 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:23 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:23 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3820122093 ---
+2026-08-21 22:20:23 | INFO     | downloader   | [3820122093] Commencing Telegram message iteration starting from ID: 1297
+2026-08-21 22:20:23 | INFO     | downloader   | [3820122093] SCAN COMPLETE. Queued 3 files for actual download. Skipped: 0
+2026-08-21 22:20:23 | INFO     | downloader   | ✅ [3820122093] Download Success: 1300_3820122093_1787216842.jpg
+2026-08-21 22:20:24 | INFO     | downloader   | ✅ [3820122093] Download Success: 1299_3820122093_1787216842.jpg
+2026-08-21 22:20:24 | INFO     | downloader   | ✅ [3820122093] Download Success: 1298_3820122093_1787216842.jpg
+2026-08-21 22:20:25 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3820122093 ---
+2026-08-21 22:20:25 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:25 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:25 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2138809387 ---
+2026-08-21 22:20:25 | INFO     | downloader   | [2138809387] Commencing Telegram message iteration starting from ID: 127
+2026-08-21 22:20:25 | INFO     | downloader   | [2138809387] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:25 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2138809387 ---
+2026-08-21 22:20:25 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:25 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:25 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2009741485 ---
+2026-08-21 22:20:25 | INFO     | downloader   | [2009741485] Commencing Telegram message iteration starting from ID: 129
+2026-08-21 22:20:26 | INFO     | downloader   | [2009741485] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:26 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2009741485 ---
+2026-08-21 22:20:26 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:26 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:26 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2706450994 ---
+2026-08-21 22:20:26 | INFO     | downloader   | [2706450994] Commencing Telegram message iteration starting from ID: 3558
+2026-08-21 22:20:26 | INFO     | downloader   | [2706450994] SCAN COMPLETE. Queued 1 files for actual download. Skipped: 0
+2026-08-21 22:20:27 | INFO     | downloader   | ✅ [2706450994] Download Success: 3559_2706450994_1787213496.jpg
+2026-08-21 22:20:28 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2706450994 ---
+2026-08-21 22:20:28 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:28 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:28 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1940958578 ---
+2026-08-21 22:20:28 | INFO     | downloader   | [1940958578] Commencing Telegram message iteration starting from ID: 144
+2026-08-21 22:20:28 | INFO     | downloader   | [1940958578] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:28 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 1940958578 ---
+2026-08-21 22:20:28 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:28 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:28 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3684308133 ---
+2026-08-21 22:20:28 | INFO     | downloader   | [3684308133] Commencing Telegram message iteration starting from ID: 1416
+2026-08-21 22:20:28 | INFO     | downloader   | [3684308133] Found 6 historically incomplete files in database. Appending to queue...
+2026-08-21 22:20:28 | INFO     | downloader   | [3684308133] SCAN COMPLETE. Queued 1 files for actual download. Skipped: 0
+2026-08-21 22:20:28 | INFO     | downloader   | ✅ [3684308133] Download Success: 1420_3684308133_1787242537.jpg
+2026-08-21 22:20:29 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3684308133 ---
+2026-08-21 22:20:29 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:29 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:29 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3739325560 ---
+2026-08-21 22:20:30 | INFO     | downloader   | [3739325560] Commencing Telegram message iteration starting from ID: 860
+2026-08-21 22:20:30 | INFO     | downloader   | [3739325560] Found 1 historically incomplete files in database. Appending to queue...
+2026-08-21 22:20:30 | INFO     | downloader   | [3739325560] SCAN COMPLETE. Queued 2 files for actual download. Skipped: 0
+2026-08-21 22:20:30 | INFO     | downloader   | ✅ [3739325560] Download Success: 867_3739325560_1787302570.jpg
+2026-08-21 22:20:31 | INFO     | downloader   | ✅ [3739325560] Download Success: 866_3739325560_1787302570.jpg
+2026-08-21 22:20:32 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3739325560 ---
+2026-08-21 22:20:32 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:32 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:32 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2022732004 ---
+2026-08-21 22:20:32 | INFO     | downloader   | [2022732004] Commencing Telegram message iteration starting from ID: 141
+2026-08-21 22:20:32 | INFO     | downloader   | [2022732004] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:32 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2022732004 ---
+2026-08-21 22:20:32 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:32 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:32 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2100335700 ---
+2026-08-21 22:20:32 | INFO     | downloader   | [2100335700] Commencing Telegram message iteration starting from ID: 142
+2026-08-21 22:20:32 | INFO     | downloader   | [2100335700] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:32 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2100335700 ---
+2026-08-21 22:20:32 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:32 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:32 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1920690632 ---
+2026-08-21 22:20:32 | INFO     | downloader   | [1920690632] Commencing Telegram message iteration starting from ID: 150
+2026-08-21 22:20:33 | INFO     | downloader   | [1920690632] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:33 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 1920690632 ---
+2026-08-21 22:20:33 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:33 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:33 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2128816766 ---
+2026-08-21 22:20:33 | INFO     | downloader   | [2128816766] Commencing Telegram message iteration starting from ID: 158
+2026-08-21 22:20:33 | INFO     | downloader   | [2128816766] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:33 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2128816766 ---
+2026-08-21 22:20:33 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:33 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:33 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1926082793 ---
+2026-08-21 22:20:33 | INFO     | downloader   | [1926082793] Commencing Telegram message iteration starting from ID: 161
+2026-08-21 22:20:33 | INFO     | downloader   | [1926082793] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:33 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 1926082793 ---
+2026-08-21 22:20:33 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:33 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:33 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3730719589 ---
+2026-08-21 22:20:34 | INFO     | downloader   | [3730719589] Commencing Telegram message iteration starting from ID: 178
+2026-08-21 22:20:34 | INFO     | downloader   | [3730719589] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:34 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3730719589 ---
+2026-08-21 22:20:34 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:34 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:34 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2073060858 ---
+2026-08-21 22:20:34 | INFO     | downloader   | [2073060858] Commencing Telegram message iteration starting from ID: 167
+2026-08-21 22:20:34 | INFO     | downloader   | [2073060858] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:34 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2073060858 ---
+2026-08-21 22:20:34 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:34 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:34 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2000870481 ---
+2026-08-21 22:20:34 | INFO     | downloader   | [2000870481] Commencing Telegram message iteration starting from ID: 201
+2026-08-21 22:20:34 | INFO     | downloader   | [2000870481] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:34 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2000870481 ---
+2026-08-21 22:20:34 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:34 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:34 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2102353283 ---
+2026-08-21 22:20:35 | INFO     | downloader   | [2102353283] Commencing Telegram message iteration starting from ID: 180
+2026-08-21 22:20:35 | INFO     | downloader   | [2102353283] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:35 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2102353283 ---
+2026-08-21 22:20:35 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:35 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:35 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2085965638 ---
+2026-08-21 22:20:35 | INFO     | downloader   | [2085965638] Commencing Telegram message iteration starting from ID: 191
+2026-08-21 22:20:35 | INFO     | downloader   | [2085965638] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:35 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2085965638 ---
+2026-08-21 22:20:35 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:35 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:35 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2051152016 ---
+2026-08-21 22:20:35 | INFO     | downloader   | [2051152016] Commencing Telegram message iteration starting from ID: 202
+2026-08-21 22:20:35 | INFO     | downloader   | [2051152016] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:20:36 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2051152016 ---
+2026-08-21 22:20:36 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:20:36 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:20:36 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3930596393 ---
+2026-08-21 22:20:36 | INFO     | downloader   | [3930596393] Commencing Telegram message iteration starting from ID: 194
+2026-08-21 22:20:36 | INFO     | downloader   | [3930596393] SCAN COMPLETE. Queued 8 files for actual download. Skipped: 0
+2026-08-21 22:21:57 | INFO     | downloader   | ✅ [3930596393] Download Success: 202_3930596393_1787248395.mp4
+2026-08-21 22:21:58 | INFO     | downloader   | ✅ [3930596393] Download Success: 199_3930596393_1787248395.mp4
+2026-08-21 22:22:00 | INFO     | downloader   | ✅ [3930596393] Download Success: 201_3930596393_1787248395.mp4
+2026-08-21 22:22:13 | INFO     | downloader   | ✅ [3930596393] Download Success: 200_3930596393_1787248395.mp4
+2026-08-21 22:22:15 | INFO     | downloader   | ✅ [3930596393] Download Success: 198_3930596393_1787248395.mp4
+2026-08-21 22:22:15 | INFO     | downloader   | ✅ [3930596393] Download Success: 197_3930596393_1787248395.mp4
+2026-08-21 22:22:17 | INFO     | downloader   | ✅ [3930596393] Download Success: 196_3930596393_1787248394.mp4
+2026-08-21 22:22:19 | INFO     | downloader   | ✅ [3930596393] Download Success: 195_3930596393_1787248394.mp4
+2026-08-21 22:22:20 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3930596393 ---
+2026-08-21 22:22:20 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:20 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:20 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2043305287 ---
+2026-08-21 22:22:20 | INFO     | downloader   | [2043305287] Commencing Telegram message iteration starting from ID: 213
+2026-08-21 22:22:20 | INFO     | downloader   | [2043305287] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:22:20 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2043305287 ---
+2026-08-21 22:22:20 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:20 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:20 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3841393699 ---
+2026-08-21 22:22:20 | INFO     | downloader   | [3841393699] Commencing Telegram message iteration starting from ID: 275
+2026-08-21 22:22:20 | INFO     | downloader   | [3841393699] SCAN COMPLETE. Queued 5 files for actual download. Skipped: 0
+2026-08-21 22:22:20 | INFO     | downloader   | ✅ [3841393699] Download Success: 279_3841393699_1787177153.jpg
+2026-08-21 22:22:21 | INFO     | downloader   | ✅ [3841393699] Download Success: 280_IMG_9110.MP4
+2026-08-21 22:22:21 | INFO     | downloader   | ✅ [3841393699] Download Success: 276_3841393699_1787176543.jpg
+2026-08-21 22:22:22 | INFO     | downloader   | ✅ [3841393699] Download Success: 278_IMG_9107.MP4
+2026-08-21 22:22:23 | INFO     | downloader   | ✅ [3841393699] Download Success: 277_IMG_9106.MP4
+2026-08-21 22:22:23 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3841393699 ---
+2026-08-21 22:22:23 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:23 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:23 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2080109653 ---
+2026-08-21 22:22:23 | INFO     | downloader   | [2080109653] Commencing Telegram message iteration starting from ID: 223
+2026-08-21 22:22:24 | INFO     | downloader   | [2080109653] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:22:24 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2080109653 ---
+2026-08-21 22:22:24 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:24 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:24 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2023562766 ---
+2026-08-21 22:22:24 | INFO     | downloader   | [2023562766] Commencing Telegram message iteration starting from ID: 232
+2026-08-21 22:22:24 | INFO     | downloader   | [2023562766] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:22:24 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2023562766 ---
+2026-08-21 22:22:24 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:24 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:24 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2062582285 ---
+2026-08-21 22:22:24 | INFO     | downloader   | [2062582285] Commencing Telegram message iteration starting from ID: 251
+2026-08-21 22:22:24 | INFO     | downloader   | [2062582285] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:22:24 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2062582285 ---
+2026-08-21 22:22:24 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:24 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:24 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2145912145 ---
+2026-08-21 22:22:24 | INFO     | downloader   | [2145912145] Commencing Telegram message iteration starting from ID: 267
+2026-08-21 22:22:25 | INFO     | downloader   | [2145912145] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:22:25 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2145912145 ---
+2026-08-21 22:22:25 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:25 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:25 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3616436829 ---
+2026-08-21 22:22:25 | INFO     | downloader   | [3616436829] Commencing Telegram message iteration starting from ID: 1778
+2026-08-21 22:22:25 | INFO     | downloader   | [3616436829] Found 1 historically incomplete files in database. Appending to queue...
+2026-08-21 22:22:25 | INFO     | downloader   | [3616436829] SCAN COMPLETE. Queued 2 files for actual download. Skipped: 0
+2026-08-21 22:22:25 | INFO     | downloader   | ✅ [3616436829] Download Success: 1785_3616436829_1787302569.jpg
+2026-08-21 22:22:26 | INFO     | downloader   | ✅ [3616436829] Download Success: 1784_3616436829_1787302569.jpg
+2026-08-21 22:22:27 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3616436829 ---
+2026-08-21 22:22:27 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:27 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:27 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2056313641 ---
+2026-08-21 22:22:27 | INFO     | downloader   | [2056313641] Commencing Telegram message iteration starting from ID: 290
+2026-08-21 22:22:27 | INFO     | downloader   | [2056313641] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:22:27 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2056313641 ---
+2026-08-21 22:22:27 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:27 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:27 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2521917296 ---
+2026-08-21 22:22:27 | INFO     | downloader   | [2521917296] Commencing Telegram message iteration starting from ID: 290
+2026-08-21 22:22:27 | INFO     | downloader   | [2521917296] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:22:27 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2521917296 ---
+2026-08-21 22:22:27 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:27 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:27 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2042415536 ---
+2026-08-21 22:22:27 | INFO     | downloader   | [2042415536] Commencing Telegram message iteration starting from ID: 423
+2026-08-21 22:22:28 | INFO     | downloader   | [2042415536] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:22:28 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2042415536 ---
+2026-08-21 22:22:28 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:28 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:28 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3835051633 ---
+2026-08-21 22:22:28 | INFO     | downloader   | [3835051633] Commencing Telegram message iteration starting from ID: 435
+2026-08-21 22:22:28 | INFO     | downloader   | [3835051633] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:22:28 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3835051633 ---
+2026-08-21 22:22:28 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:28 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:28 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1970806510 ---
+2026-08-21 22:22:28 | INFO     | downloader   | [1970806510] Commencing Telegram message iteration starting from ID: 365
+2026-08-21 22:22:29 | INFO     | downloader   | [1970806510] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:22:29 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 1970806510 ---
+2026-08-21 22:22:29 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:29 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:29 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2017936511 ---
+2026-08-21 22:22:29 | INFO     | downloader   | [2017936511] Commencing Telegram message iteration starting from ID: 449
+2026-08-21 22:22:29 | INFO     | downloader   | [2017936511] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:22:29 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2017936511 ---
+2026-08-21 22:22:29 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:29 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:29 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1933798175 ---
+2026-08-21 22:22:29 | INFO     | downloader   | [1933798175] Commencing Telegram message iteration starting from ID: 453
+2026-08-21 22:22:29 | INFO     | downloader   | [1933798175] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:22:30 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 1933798175 ---
+2026-08-21 22:22:30 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:30 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:30 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1914841041 ---
+2026-08-21 22:22:30 | INFO     | downloader   | [1914841041] Commencing Telegram message iteration starting from ID: 482
+2026-08-21 22:22:30 | INFO     | downloader   | [1914841041] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:22:30 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 1914841041 ---
+2026-08-21 22:22:30 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:30 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:30 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2896164096 ---
+2026-08-21 22:22:30 | INFO     | downloader   | [2896164096] Commencing Telegram message iteration starting from ID: 3053
+2026-08-21 22:22:30 | INFO     | downloader   | [2896164096] Found 1 historically incomplete files in database. Appending to queue...
+2026-08-21 22:22:30 | INFO     | downloader   | [2896164096] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:22:30 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2896164096 ---
+2026-08-21 22:22:30 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:30 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:30 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 2689877354 ---
+2026-08-21 22:22:31 | INFO     | downloader   | [2689877354] Commencing Telegram message iteration starting from ID: 137468
+2026-08-21 22:22:31 | INFO     | downloader   | [2689877354] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:22:31 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 2689877354 ---
+2026-08-21 22:22:31 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:31 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:31 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1897905928 ---
+2026-08-21 22:22:31 | INFO     | downloader   | [1897905928] Commencing Telegram message iteration starting from ID: 1290
+2026-08-21 22:22:32 | INFO     | downloader   | [1897905928] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:22:32 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 1897905928 ---
+2026-08-21 22:22:32 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:32 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:32 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1957801140 ---
+2026-08-21 22:22:32 | INFO     | downloader   | [1957801140] Commencing Telegram message iteration starting from ID: 1484
+2026-08-21 22:22:32 | INFO     | downloader   | [1957801140] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:22:32 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 1957801140 ---
+2026-08-21 22:22:32 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:32 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:32 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1793017978 ---
+2026-08-21 22:22:32 | INFO     | downloader   | [1793017978] Commencing Telegram message iteration starting from ID: 2753
+2026-08-21 22:22:33 | INFO     | downloader   | [1793017978] Found 69 historically incomplete files in database. Appending to queue...
+2026-08-21 22:22:34 | INFO     | downloader   | [1793017978] SCAN COMPLETE. Queued 2 files for actual download. Skipped: 0
+2026-08-21 22:22:44 | INFO     | downloader   | ✅ [1793017978] Download Success: 2755_video.mp4
+2026-08-21 22:22:57 | INFO     | downloader   | ✅ [1793017978] Download Success: 2754_IMG_5750.MP4
+2026-08-21 22:22:58 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 1793017978 ---
+2026-08-21 22:22:58 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:22:58 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:22:58 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1817406537 ---
+2026-08-21 22:22:58 | INFO     | downloader   | [1817406537] Commencing Telegram message iteration starting from ID: 2036
+2026-08-21 22:22:58 | INFO     | downloader   | [1817406537] SCAN COMPLETE. Queued 11 files for actual download. Skipped: 0
+2026-08-21 22:22:59 | INFO     | downloader   | ✅ [1817406537] Download Success: 2047_1817406537_1787277083.jpg
+2026-08-21 22:22:59 | INFO     | downloader   | ✅ [1817406537] Download Success: 2046_1817406537_1787276938.jpg
+2026-08-21 22:23:00 | INFO     | downloader   | ✅ [1817406537] Download Success: 2045_1817406537_1787276938.jpg
+2026-08-21 22:23:00 | INFO     | downloader   | ✅ [1817406537] Download Success: 2044_1817406537_1787206957.jpg
+2026-08-21 22:23:01 | INFO     | downloader   | ✅ [1817406537] Download Success: 2043_1817406537_1787206957.jpg
+2026-08-21 22:23:01 | INFO     | downloader   | ✅ [1817406537] Download Success: 2042_1817406537_1787206957.jpg
+2026-08-21 22:23:02 | INFO     | downloader   | ✅ [1817406537] Download Success: 2041_1817406537_1787206957.jpg
+2026-08-21 22:23:02 | INFO     | downloader   | ✅ [1817406537] Download Success: 2040_1817406537_1787206957.jpg
+2026-08-21 22:23:03 | INFO     | downloader   | ✅ [1817406537] Download Success: 2039_1817406537_1787206957.jpg
+2026-08-21 22:23:03 | INFO     | downloader   | ✅ [1817406537] Download Success: 2038_1817406537_1787206957.jpg
+2026-08-21 22:23:04 | INFO     | downloader   | ✅ [1817406537] Download Success: 2037_1817406537_1787206957.jpg
+2026-08-21 22:23:05 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 1817406537 ---
+2026-08-21 22:23:05 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:23:05 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:23:05 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1403513317 ---
+2026-08-21 22:23:05 | INFO     | downloader   | [1403513317] Commencing Telegram message iteration starting from ID: 2903
+2026-08-21 22:23:05 | INFO     | downloader   | [1403513317] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:23:05 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 1403513317 ---
+2026-08-21 22:23:05 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:23:05 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:23:05 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 3557854960 ---
+2026-08-21 22:23:05 | INFO     | downloader   | [3557854960] Commencing Telegram message iteration starting from ID: 17172
+2026-08-21 22:23:06 | INFO     | downloader   | [3557854960] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:23:06 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 3557854960 ---
+2026-08-21 22:23:06 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:23:06 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:23:06 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1846481667 ---
+2026-08-21 22:23:06 | INFO     | downloader   | [1846481667] Commencing Telegram message iteration starting from ID: 776
+2026-08-21 22:23:06 | INFO     | downloader   | [1846481667] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:23:07 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 1846481667 ---
+2026-08-21 22:23:07 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:23:07 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:23:07 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1616031640 ---
+2026-08-21 22:23:07 | INFO     | downloader   | [1616031640] Commencing Telegram message iteration starting from ID: 2079
+2026-08-21 22:23:07 | INFO     | downloader   | [1616031640] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:23:07 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 1616031640 ---
+2026-08-21 22:23:07 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:23:07 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 22:23:07 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1897812075 ---
+2026-08-21 22:23:07 | INFO     | downloader   | [1897812075] Commencing Telegram message iteration starting from ID: 8068
+2026-08-21 22:23:07 | INFO     | downloader   | [1897812075] SCAN COMPLETE. Queued 0 files for actual download. Skipped: 0
+2026-08-21 22:23:08 | INFO     | downloader   | --- FINISHED DOWNLOAD SCAN: Chat 1897812075 ---
+2026-08-21 22:23:08 | INFO     | orchestrator | --- TASK COMPLETED: download-chat ---
+2026-08-21 22:30:43 | INFO     | main         | Shutting down WireKeeper Engine...
+2026-08-21 22:30:43 | INFO     | main         | Shutdown complete.
+2026-08-21 22:30:45 | INFO     | main         | Initializing Database Pool...
+2026-08-21 22:30:45 | INFO     | main         | Database initialized successfully.
+2026-08-21 22:30:45 | INFO     | main         | Attempting to start Telegram Client for Profile 1 (Session: wirekeeper_session)...
+2026-08-21 22:30:46 | INFO     | main         | ✅ WireKeeper Engine Started Successfully (Active Profile: 1).
+2026-08-21 22:30:46 | INFO     | main         | Starting Orchestrator worker loop...
+2026-08-21 22:30:46 | INFO     | orchestrator | Orchestrator worker loop actively listening for tasks.
+2026-08-21 22:31:34 | INFO     | main         | Enqueued Global Sync All task via UI.
+2026-08-21 22:31:34 | INFO     | orchestrator | --- LAUNCHING TASK: sync-all ---
+2026-08-21 22:31:34 | INFO     | downloader   | --- STARTING GLOBAL CHATLIST SYNC ---
+2026-08-21 22:32:07 | WARNING  | downloader   | History wipe detected for 3633848028 (𝙋!𝙉𝘼𝙔 𝙎𝙊𝙐𝙍𝘾𝙀). Metadata preserved but marked dead.
+2026-08-21 22:32:08 | WARNING  | downloader   | History wipe detected for 2726017540 (🔥𝙱𝙴𝙻𝙾𝚆 𝟷𝟾🔥). Metadata preserved but marked dead.
+2026-08-21 22:32:08 | WARNING  | downloader   | History wipe detected for 3842405545 (E̶x̶c̶e̶p̶t̶i̶o̶n̶a̶l̶ L̶u̶n̶a̶). Metadata preserved but marked dead.
+2026-08-21 22:32:09 | WARNING  | downloader   | History wipe detected for 3530704592 (NIGHT PARTY). Metadata preserved but marked dead.
+2026-08-21 22:32:37 | WARNING  | downloader   | History wipe detected for 3495611102 (𝑩𝑨𝑮𝑺𝑨𝑲𝑨𝑵 𝑵𝑮 𝑬𝑺𝑻𝑼𝑫𝒀𝑨𝑵𝑻𝑬). Metadata preserved but marked dead.
+2026-08-21 22:32:37 | WARNING  | downloader   | History wipe detected for 1801160866 (CUM ON FOOD / SWALLOW). Metadata preserved but marked dead.
+2026-08-21 22:32:37 | WARNING  | downloader   | History wipe detected for 3745977183 (𝑩𝑨𝑮𝑺𝑨𝑲𝑨𝑵 𝑵𝑮 𝑬𝑺𝑻𝑼𝑫𝒀𝑨𝑵𝑻𝑬). Metadata preserved but marked dead.
+2026-08-21 22:32:37 | WARNING  | downloader   | History wipe detected for 3497038163 (SP4DE PREMIUM META). Metadata preserved but marked dead.
+2026-08-21 22:32:37 | WARNING  | downloader   | History wipe detected for 3544089486 (FUN ONLY). Metadata preserved but marked dead.
+2026-08-21 22:32:37 | WARNING  | downloader   | History wipe detected for 3884266868 (PINAYLEAK 3.0). Metadata preserved but marked dead.
+2026-08-21 22:32:38 | WARNING  | downloader   | History wipe detected for 2889156809 (OME TV [FREE]). Metadata preserved but marked dead.
+2026-08-21 22:32:38 | WARNING  | downloader   | History wipe detected for 1707509987 (Dark Paradise Random Leak). Metadata preserved but marked dead.
+2026-08-21 22:32:38 | WARNING  | downloader   | History wipe detected for 2818832413 (.-. ..- ... .. / ... .... --- .-- .-. --- --- --). Metadata preserved but marked dead.
+2026-08-21 22:32:38 | WARNING  | downloader   | History wipe detected for 3518115357 (𝚂𝚃. 𝙶𝙴𝚁𝚁𝙰𝚁𝙳 𝙲𝙾𝙽𝚂𝚃𝚁𝚄𝙲𝚃𝙸𝙾𝙽). Metadata preserved but marked dead.
+2026-08-21 22:32:38 | WARNING  | downloader   | History wipe detected for 2697595297 (𝐎𝐌𝐄 𝐏𝐇). Metadata preserved but marked dead.
+2026-08-21 22:32:39 | WARNING  | downloader   | History wipe detected for 2696058965 (𝚄𝚂𝙴𝙲 𝙲𝙰𝚃𝙷𝚈 𝙲𝙰𝙱𝚁𝙰𝙻 𝙵𝙸𝙻𝙴𝚂). Metadata preserved but marked dead.
+2026-08-21 22:32:39 | WARNING  | downloader   | History wipe detected for 3321663674 (𝙳𝚎𝚊𝚗'𝚜 𝙻𝚒𝚜𝚝). Metadata preserved but marked dead.
+2026-08-21 22:33:39 | WARNING  | downloader   | History wipe detected for 2377486489 (Pinay hub premium). Metadata preserved but marked dead.
+2026-08-21 22:35:13 | WARNING  | downloader   | History wipe detected for 1490976537 (Pnay Lapagan V.2). Metadata preserved but marked dead.
+2026-08-21 22:38:19 | INFO     | downloader   | Auto-disabling 71 inaccessible/ghost chats.
+2026-08-21 22:38:20 | INFO     | downloader   | --- GLOBAL CHATLIST SYNC COMPLETE ---
+2026-08-21 22:38:20 | INFO     | orchestrator | --- TASK COMPLETED: sync-all ---

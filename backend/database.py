@@ -66,6 +66,7 @@ async def init_db():
         count = (await cursor.fetchone())[0]
         if count == 0:
             default_settings = [
+                ('profiles_list', '["1", "2"]'),
                 ('active_profile', '1'),
                 ('profile_1_api_id', ''),
                 ('profile_1_api_hash', ''),
@@ -84,6 +85,7 @@ async def init_db():
             await conn.executemany("INSERT INTO settings (key, value) VALUES (?, ?)", default_settings)
         else:
             await conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('active_profile', '1')")
+            await conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('profiles_list', '[\"1\", \"2\"]')")
 
     await conn.execute('CREATE INDEX IF NOT EXISTS idx_api_chat_msg ON downloads(api_id, chat_id, message_id)')
     await conn.commit()
