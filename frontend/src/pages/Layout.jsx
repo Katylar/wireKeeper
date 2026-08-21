@@ -20,7 +20,6 @@ export default function Layout() {
                 method: "POST",
             });
 
-            // --- NEW: Update the global state instantly without a hard reload! ---
             if (refreshSystemStatus) {
                 await refreshSystemStatus();
             }
@@ -104,8 +103,8 @@ export default function Layout() {
                                 fontWeight: "bold",
                                 opacity: isSwitching || isBusy ? 0.6 : 1,
                             }}>
-                            <option value="1">Account 1</option>
-                            <option value="2">Account 2</option>
+                            <option value="1">{systemStatus?.profile_1_name || "Account 1"}</option>
+                            <option value="2">{systemStatus?.profile_2_name || "Account 2"}</option>
                         </select>
                     </div>
                 </div>

@@ -22,24 +22,24 @@ export const WebSocketProvider = ({ children }) => {
 
     const wsRef = useRef(null);
 
-    // --- NEW: Reusable status fetcher ---
     const refreshSystemStatus = useCallback(async () => {
         try {
             const res = await fetch(`${API_BASE}/status`);
             const data = await res.json();
             setSystemStatus(data);
+
+            // --- NEW: History updates immediately alongside System Status ---
+            const histRes = await fetch(`${API_BASE}/history`);
+            const histData = await histRes.json();
+            setTaskHistory(histData);
         } catch (err) {
             console.error("Backend offline:", err);
         }
     }, []);
 
     useEffect(() => {
+        // Runs cleanly on mount, executing both fetches from above
         refreshSystemStatus();
-
-        fetch(`${API_BASE}/history`)
-            .then((res) => res.json())
-            .then((data) => setTaskHistory(data))
-            .catch((err) => console.error("Failed to fetch history:", err));
     }, [refreshSystemStatus]);
 
     useEffect(() => {
@@ -251,7 +251,7 @@ export const WebSocketProvider = ({ children }) => {
             value={{
                 isConnected,
                 systemStatus,
-                refreshSystemStatus, // --- NEW: Exported ---
+                refreshSystemStatus,
                 logs,
                 activeTasks,
                 activeScans,
@@ -270,5 +270,4 @@ export const WebSocketProvider = ({ children }) => {
     );
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useEngine = () => useContext(WebSocketContext);

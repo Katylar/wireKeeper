@@ -10,6 +10,7 @@ from config import SAFE_RESUME_REWIND
 from database import get_last_message_id, db_get_topic_exclusions, update_cursor, db_check_existing, db_update_status, db_get_incomplete, update_total_downloaded, get_settings_dict
 from utils import normalize_name, generate_filename, get_file_category, get_msg_file_size, check_file_size_integrity, get_message_topic_id, get_dir_size
 from ws_manager import manager
+from logger import logger # --- NEW ---
 
 last_total_speed = 0
 consecutive_no_gain = 0
@@ -63,20 +64,25 @@ async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mod
         current_filename = initial_final_name
         part_path = f"{initial_path}.{message_id}.part" 
 
+        logger.debug(f"[{chat_id}] Processing file: {current_filename} ({expected_size} bytes)")
+
         if os.path.exists(final_path):
-            is_valid, _ = check_file_size_integrity(final_path, expected_size, current_filename)
+            is_valid, reason = check_file_size_integrity(final_path, expected_size, current_filename)
             if is_valid and not overwrite_mode:
+                logger.debug(f"[{chat_id}] Skipped (Primary Path): {current_filename} already exists and matches {expected_size} bytes.")
                 await db_update_status(conn, api_id, unique_id, chat_id, message_id, 'success', final_path, original_name, current_filename, expected_size, topic_id)
                 stats['successful_downloads'] += 1
                 stats['categories'][file_category]['success'] += 1
                 return
             elif overwrite_mode:
+                logger.debug(f"[{chat_id}] Overwrite Mode ON: Deleting existing file {current_filename}")
                 try: os.remove(final_path)
                 except OSError: pass
 
         if alt_path and os.path.exists(alt_path) and not overwrite_mode:
             is_valid_alt, _ = check_file_size_integrity(alt_path, expected_size, current_filename)
             if is_valid_alt:
+                logger.debug(f"[{chat_id}] Skipped (Alt Path): {current_filename} already exists in alternate directory.")
                 await db_update_status(conn, api_id, unique_id, chat_id, message_id, 'success', alt_path, original_name, current_filename, expected_size, topic_id)
                 stats['successful_downloads'] += 1
                 stats['categories'][file_category]['success'] += 1
@@ -98,6 +104,7 @@ async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mod
                 if expected_size and current_part_size < expected_size:
                     should_resume = True
                     offset = max(0, current_part_size - SAFE_RESUME_REWIND)
+                    logger.info(f"[{chat_id}] Resuming {current_filename} from offset {offset} bytes.")
                 else:
                     try: os.remove(part_path)
                     except: pass
@@ -112,6 +119,9 @@ async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mod
                 if pause_event.is_set():
                     await asyncio.sleep(5)
                     continue
+
+                if attempt > 1:
+                    logger.warning(f"[{chat_id}] Retry attempt {attempt}/{max_retries} for {current_filename}")
 
                 worker_status.start_time = time.time()
                 
@@ -141,6 +151,7 @@ async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mod
                     name, ext = os.path.splitext(initial_final_name)
                     current_filename = f"{name}_{message_id}{ext}"
                     final_path = os.path.join(os.path.dirname(initial_path), current_filename)
+                    logger.debug(f"[{chat_id}] Name collision. Renamed file to {current_filename}")
 
                 rename_success = False
                 for _ in range(3):
@@ -150,14 +161,18 @@ async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mod
                         rename_success = True; break
                     except OSError: await asyncio.sleep(1)
                 
-                if not rename_success: raise OSError("Failed to rename file after download")
+                if not rename_success: 
+                    logger.error(f"[{chat_id}] OS Rename failed from .part to final file for {current_filename}")
+                    raise OSError("Failed to rename file after download")
 
                 is_valid, reason = check_file_size_integrity(final_path, expected_size, current_filename)
                 if not is_valid:
                       try: os.remove(final_path) 
                       except: pass
+                      logger.error(f"[{chat_id}] Integrity check failed for {current_filename}: {reason}")
                       raise Exception(f"Integrity check failed: {reason}")
                 
+                logger.info(f"✅ [{chat_id}] Download Success: {current_filename}")
                 await db_update_status(conn, api_id, unique_id, chat_id, message_id, 'success', final_path, original_name, current_filename, expected_size, topic_id)
                 stats['successful_downloads'] += 1
                 stats['categories'][file_category]['success'] += 1
@@ -169,10 +184,12 @@ async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mod
                 
                 if pause_event.is_set(): 
                     pause_event.clear()
+                    logger.info("Network recovered. Spawner pause event cleared.")
                     await manager.broadcast({"event": "log", "message": "Network recovered. Resuming spawner."})
                 break 
 
             except errors.FileReferenceExpiredError:
+                logger.warning(f"[{chat_id}] Telegram FileReference expired for {current_filename}. Attempting to refresh...")
                 await manager.broadcast({"event": "log", "message": f"Ref expired for {current_filename}. Refreshing..."})
                 await asyncio.sleep(2)
                 try:
@@ -184,14 +201,16 @@ async def download_worker(client, conn, queue, stats, overwrite_mode, resume_mod
             except (errors.FloodWaitError, Exception) as e:
                 err_str = str(e).lower()
                 if any(x in err_str for x in ["429", "flood", "invalid response buffer", "disconnected"]):
-                    pause_event.set()
                     wait_time = getattr(e, 'seconds', 60) * attempt 
+                    logger.warning(f"🚨 [{chat_id}] NETWORK THROTTLE/FLOODWAIT: Pausing worker for {wait_time}s due to: {e}")
+                    pause_event.set()
                     await manager.broadcast({"event": "error", "message": f"Network Throttle. Pausing system for {wait_time}s."})
                     await db_update_status(conn, api_id, unique_id, chat_id, message_id, 'queued', topic_id=topic_id)
                     await asyncio.sleep(wait_time)
                     if attempt < max_retries: continue
 
                 if attempt == max_retries:
+                    logger.error(f"❌ [{chat_id}] Download Failed permanently for {current_filename}: {e}")
                     await db_update_status(conn, api_id, unique_id, chat_id, message_id, 'failed', topic_id=topic_id)
                     stats['failed_downloads'] += 1
                     stats['categories'][file_category]['failed'] += 1
@@ -211,6 +230,7 @@ async def execute_rename_logic(conn, api_id, chat_id, db_chat_name, new_chat_tit
     old_folder = f"[{chat_id}]_{norm_old}"
     new_folder = f"[{chat_id}]_{norm_new}"
     
+    logger.info(f"[{chat_id}] Executing rename logic: {old_folder} -> {new_folder}")
     downloads_dir = app_settings.get('download_path', 'downloads')
     alt_downloads_dir = app_settings.get('alt_download_path', '')
 
@@ -220,8 +240,10 @@ async def execute_rename_logic(conn, api_id, chat_id, db_chat_name, new_chat_tit
     if os.path.exists(old_primary_path):
         try:
             os.rename(old_primary_path, new_primary_path)
+            logger.info(f"Successfully renamed primary folder for {chat_id}")
             await manager.broadcast({"event": "log", "message": f"Renamed folder: {old_folder} -> {new_folder}"})
         except OSError as e:
+            logger.error(f"Failed to rename primary folder {old_folder}: {e}")
             await manager.broadcast({"event": "error", "message": f"Failed to rename primary folder {old_folder}: {e}"})
 
     if alt_downloads_dir and os.path.exists(alt_downloads_dir):
@@ -230,7 +252,9 @@ async def execute_rename_logic(conn, api_id, chat_id, db_chat_name, new_chat_tit
         if os.path.exists(old_alt_path):
             try:
                 os.rename(old_alt_path, new_alt_path)
+                logger.info(f"Successfully renamed alternate folder for {chat_id}")
             except OSError as e:
+                logger.error(f"Failed to rename alt folder {old_folder}: {e}")
                 await manager.broadcast({"event": "error", "message": f"Failed to rename alt folder {old_folder}: {e}"})
 
     try:
@@ -244,10 +268,13 @@ async def execute_rename_logic(conn, api_id, chat_id, db_chat_name, new_chat_tit
         """
         await conn.execute(query, (old_folder, new_folder, old_folder, new_folder, api_id, chat_id))
         await conn.commit()
+        logger.debug(f"Database paths successfully updated for rename on {chat_id}")
     except Exception as e:
+        logger.error(f"Failed to update database paths for rename: {e}")
         await manager.broadcast({"event": "error", "message": f"Failed to update database paths for rename: {e}"})
 
 async def sync_chatlist(client, conn):
+    logger.info("--- STARTING GLOBAL CHATLIST SYNC ---")
     await manager.broadcast({"event": "log", "message": "Processing chat list (Syncing with DB)..."})
     app_settings = await get_settings_dict(conn)
     
@@ -263,7 +290,8 @@ async def sync_chatlist(client, conn):
                     "chat_name": row[1], "date_added": row[2], "old_name": row[3], 
                     "is_batch": row[4], "last_message_id": row[5] or 0, "total_downloaded": row[6] or 0
                 }
-    except: pass
+    except Exception as e: 
+        logger.error(f"Error fetching existing chats for sync: {e}")
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     seen_chat_ids = set()
@@ -287,13 +315,15 @@ async def sync_chatlist(client, conn):
                 if result and result.topics:
                     topics_list = [{"id": t.id, "title": t.title} for t in result.topics]
                     topics_json = json.dumps(topics_list, ensure_ascii=False)
-            except: pass
+            except Exception as e:
+                logger.debug(f"Failed to fetch topics for {chat_id}: {e}")
 
         is_batch = bool(db_chats[chat_id]['is_batch']) if chat_id in db_chats else False
         
         old_name = db_chats[chat_id]['old_name'] if chat_id in db_chats else None
         if chat_id in db_chats and db_chats[chat_id]['chat_name'] != current_name:
             old_name = db_chats[chat_id]['chat_name']
+            logger.info(f"Detected name change for {chat_id}: {old_name} -> {current_name}")
             await execute_rename_logic(conn, api_id, chat_id, old_name, current_name, app_settings)
             
         date_added = db_chats[chat_id]['date_added'] if chat_id in db_chats else current_time
@@ -305,6 +335,7 @@ async def sync_chatlist(client, conn):
         if total_messages == 0 and (db_last_msg_id > 0 or db_total_dl > 0):
             total_messages = db_last_msg_id
             is_history_wiped = True
+            logger.warning(f"History wipe detected for {chat_id} ({current_name}). Metadata preserved but marked dead.")
 
         chat_status_val = 0 if is_history_wiped else 1
 
@@ -324,6 +355,7 @@ async def sync_chatlist(client, conn):
 
     if dead_chat_ids:
         dead_list = list(dead_chat_ids)
+        logger.info(f"Auto-disabling {len(dead_chat_ids)} inaccessible/ghost chats.")
         placeholders = ",".join("?" for _ in dead_list)
         await conn.execute(f'''
             UPDATE chat_list 
@@ -334,6 +366,12 @@ async def sync_chatlist(client, conn):
 
     await conn.commit()
     await update_total_downloaded(conn, api_id)
+    
+    # --- NEW: Save the exact time the global sync completed ---
+    await conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (f'profile_{active_prof}_last_global_sync', current_time))
+    await conn.commit()
+    
+    logger.info("--- GLOBAL CHATLIST SYNC COMPLETE ---")
     await manager.broadcast({"event": "log", "message": "Database Updated."})
 
 async def sync_single_chat(client, conn, chat_id):
@@ -341,6 +379,7 @@ async def sync_single_chat(client, conn, chat_id):
     active_prof = app_settings.get('active_profile', '1')
     api_id = app_settings.get(f'profile_{active_prof}_api_id')
     
+    logger.info(f"Executing Single Sync for chat {chat_id}...")
     try:
         entity = await client.get_entity(chat_id)
         current_name = utils.get_display_name(entity)
@@ -352,7 +391,7 @@ async def sync_single_chat(client, conn, chat_id):
                 topics_list = [{"id": t.id, "title": t.title} for t in result.topics]
                 topics_json = json.dumps(topics_list, ensure_ascii=False)
             except Exception as e:
-                print(f"Skipping forum fetch due to error: {e}")
+                logger.debug(f"Skipping forum fetch for single sync due to error: {e}")
 
         await conn.execute('''
             UPDATE chat_list 
@@ -360,7 +399,9 @@ async def sync_single_chat(client, conn, chat_id):
             WHERE api_id = ? AND chat_id = ?
         ''', (current_name, topics_json, api_id, chat_id))
         await conn.commit()
+        logger.info(f"Single Sync for {chat_id} successful.")
     except Exception as e:
+        logger.error(f"Single Sync failed for {chat_id}: {e}. Marking as dead.")
         await manager.broadcast({"event": "log", "message": f"Sync failed for {chat_id}: {e}. Marking as dead."})
         await conn.execute("UPDATE chat_list SET chat_status = 0, enabled = 0 WHERE api_id = ? AND chat_id = ?", (api_id, chat_id))
         await conn.commit()
@@ -371,6 +412,9 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
     start_time_dt = datetime.now()
     start_time_sec = time.time()
     task_status = "completed"
+    
+    logger.info(f"--- INIT DOWNLOAD SCAN: Chat {chat_id} ---")
+    logger.debug(f"Parameters -> Overwrite: {overwrite_mode}, Validate: {validate_mode}, Resume: {resume_mode}")
     
     app_settings = await get_settings_dict(conn)
     active_prof = app_settings.get('active_profile', '1')
@@ -429,9 +473,11 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
                     
                     if db_chat_name and db_chat_name != chat_title:
                         new_old_name = db_chat_name
+                        logger.info(f"Target chat renamed upstream: {db_chat_name} -> {chat_title}")
                         await execute_rename_logic(conn, api_id, chat_id, db_chat_name, chat_title, app_settings)
                     
                     if total_messages == 0 and ((db_last_msg_id or 0) > 0 or (db_total_dl or 0) > 0):
+                        logger.warning(f"History wipe detected for {chat_id} before download start.")
                         await conn.execute("""
                             UPDATE chat_list 
                             SET chat_name = ?, old_name = ?, chat_status = 0, enabled = 0, total_messages = ?, date_updated = CURRENT_TIMESTAMP
@@ -449,6 +495,7 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
             await conn.commit()
                 
         except Exception as e:
+            logger.error(f"Failed to fetch entity {chat_id} from Telegram: {e}")
             await manager.broadcast({"event": "log", "message": f"Error fetching chat {chat_id}: {e}. Marking as dead."})
             await conn.execute("UPDATE chat_list SET chat_status = 0, enabled = 0 WHERE api_id = ? AND chat_id = ?", (api_id, chat_id))
             await conn.commit()
@@ -467,6 +514,7 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
         excluded_topics = await db_get_topic_exclusions(conn, api_id, chat_id)
         last_read_id = 0 if validate_mode else await get_last_message_id(conn, api_id, chat_id)
         
+        logger.info(f"[{chat_id}] Commencing Telegram message iteration starting from ID: {last_read_id}")
         await manager.broadcast({
             "event": "scan_start", 
             "chat_name": chat_title, 
@@ -486,6 +534,7 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
             stats['total_messages_scanned'] += 1
             
             if stats['total_messages_scanned'] % 500 == 0:
+                logger.debug(f"[{chat_id}] Scanned {stats['total_messages_scanned']} messages...")
                 await manager.broadcast({"event": "scan_progress", "chat_id": chat_id, "scanned": stats['total_messages_scanned']})
 
             if message.id > highest_scanned_id: highest_scanned_id = message.id
@@ -572,6 +621,7 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
         ids_to_fetch = list(incomplete_ids - scanned_ids_in_session)
         
         if ids_to_fetch:
+            logger.info(f"[{chat_id}] Found {len(ids_to_fetch)} historically incomplete files in database. Appending to queue...")
             await manager.broadcast({"event": "log", "message": f"Found {len(ids_to_fetch)} incomplete files. Re-fetching in chunks..."})
             chunk_size = 200
             for i in range(0, len(ids_to_fetch), chunk_size):
@@ -607,6 +657,7 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
                         existing = json.load(f)
                 except json.JSONDecodeError:
                     backup_file = f"{msg_file}.corrupt_{int(time.time())}.bak"
+                    logger.warning(f"[{chat_id}] messages.json corrupted. Backed up to {backup_file}")
                     os.rename(msg_file, backup_file)
                     existing = []
             
@@ -627,6 +678,7 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
         await update_total_downloaded(conn, api_id, chat_id)
 
         total_downloads_needed = len(temp_download_list)
+        logger.info(f"[{chat_id}] SCAN COMPLETE. Queued {total_downloads_needed} files for actual download. Skipped: {stats['skipped_downloads']}")
         await manager.broadcast({"event": "scan_complete", "chat_id": chat_id, "scanned": stats['total_messages_scanned'], "queued": total_downloads_needed})
         
         if total_downloads_needed > 0:
@@ -692,9 +744,11 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
             except OSError: pass
 
     except asyncio.CancelledError:
+        logger.warning(f"[{chat_id}] Download Scan forcibly cancelled by System/User.")
         task_status = "killed"
         raise
     except Exception as e:
+        logger.error(f"[{chat_id}] Fatal error during scan execution: {e}", exc_info=True)
         task_status = "failed"
         await manager.broadcast({"event": "log", "message": f"Fatal scan error: {e}"})
         raise
@@ -726,9 +780,11 @@ async def process_chat_download(client, conn, chat_id, overwrite_mode=False, val
         try:
             await conn.execute("INSERT INTO activity_history (api_id, timestamp, chat_id, stats) VALUES (?, ?, ?, ?)", (api_id, time_str, chat_id, json.dumps(history_data)))
             await conn.commit()
+            logger.debug(f"[{chat_id}] Activity history successfully appended to database.")
         except Exception as db_e:
-            print(f"Failed to save history: {db_e}")
+            logger.error(f"[{chat_id}] Failed to save activity history to DB: {db_e}")
 
+        logger.info(f"--- FINISHED DOWNLOAD SCAN: Chat {chat_id} ---")
         await manager.broadcast({
             "event": "chat_complete", 
             "chat_id": chat_id,
@@ -754,6 +810,7 @@ async def process_batch_download(client, conn, overwrite_mode=False, validate_mo
     active_prof = app_settings.get('active_profile', '1')
     api_id = app_settings.get(f'profile_{active_prof}_api_id')
     
+    logger.info(f"--- STARTING DB BATCH GENERATOR (Sort: {sort_order}) ---")
     await manager.broadcast({"event": "log", "message": f"[DB] Fetching batch list from database (Sort: {sort_order})..."})
     
     query = f"SELECT chat_id, chat_name FROM chat_list WHERE api_id = ? AND is_batch = 1 AND enabled = 1 AND chat_status = 1 {sql_order}"
@@ -761,22 +818,28 @@ async def process_batch_download(client, conn, overwrite_mode=False, validate_mo
         batch_targets = await cursor.fetchall()
         
     if not batch_targets:
+        logger.warning("Batch generator failed: No valid chats marked for batch download.")
         await manager.broadcast({"event": "log", "message": "No valid chats marked for batch download."})
         return
 
     total_chats = len(batch_targets)
+    logger.info(f"Batch generator successfully compiled {total_chats} chats for queue.")
     await manager.broadcast({"event": "log", "message": f"Batch processing {total_chats} chats."})
     
     for i, row in enumerate(batch_targets, 1):
         await asyncio.sleep(0.1) 
         
         chat_id, chat_name = row[0], row[1]
+        logger.info(f"Batch Index {i}/{total_chats} -> Passing {chat_name} to Chat Downloader")
         await manager.broadcast({"event": "log", "message": f"--- Downloading Batch {i}/{total_chats}: {chat_name} ---"})
         try:
             await process_chat_download(client, conn, chat_id, overwrite_mode, validate_mode, resume_mode)
         except asyncio.CancelledError:
+            logger.warning(f"Batch execution forcibly cancelled at index {i}/{total_chats}.")
             raise 
         except Exception as e:
+            logger.error(f"Batch encountered unhandled error on {chat_name}: {e}")
             await manager.broadcast({"event": "error", "message": f"Skipping {chat_name} due to error: {e}"})
         
+    logger.info("--- BATCH GENERATOR COMPLETE ---")
     await manager.broadcast({"event": "batch_complete"})

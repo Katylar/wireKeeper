@@ -16,6 +16,7 @@ from ws_manager import manager
 from downloader import process_chat_download, sync_chatlist, sync_single_chat, process_batch_download
 from utils import normalize_name
 from orchestrator import queue_manager
+from logger import logger
 
 telegram_client = None
 db_pool = None
@@ -28,7 +29,6 @@ class SettingsUpdate(BaseModel):
     profile_2_api_id: Optional[str] = None
     profile_2_api_hash: Optional[str] = None
     profile_2_session_name: Optional[str] = None
-    
     download_path: Optional[str] = None
     alt_download_path: Optional[str] = None
     max_concurrent_heavy: Optional[str] = None
@@ -50,7 +50,6 @@ class MultiChatRequest(BaseModel):
     validate_mode: Optional[bool] = False
     resume: Optional[bool] = True
 
-# --- NEW: Safe API ID Fetcher for DB Scoping ---
 async def get_active_api_id():
     settings = await get_settings_dict(db_pool)
     active_prof = settings.get('active_profile', '1')
@@ -67,20 +66,34 @@ async def startup_telethon(db):
     
     if api_id and api_hash:
         try:
+            logger.info(f"Attempting to start Telegram Client for Profile {active_prof} (Session: {session_name})...")
             telegram_client = TelegramClient(session_name, int(api_id), api_hash, connection=ConnectionTcpAbridged)
             await telegram_client.start()
-            print(f"WireKeeper Engine Started Successfully (Active Profile: {active_prof}).")
+            
+            # --- NEW: Fetch actual Telegram identity for the UI! ---
+            try:
+                me = await telegram_client.get_me()
+                if me:
+                    display_name = f"@{me.username}" if getattr(me, 'username', None) else (f"+{me.phone}" if getattr(me, 'phone', None) else getattr(me, 'first_name', f"Account {active_prof}"))
+                    await update_setting(db, f'profile_{active_prof}_account_name', display_name)
+            except Exception as e:
+                logger.warning(f"Could not fetch user profile details: {e}")
+            
+            logger.info(f"✅ WireKeeper Engine Started Successfully (Active Profile: {active_prof}).")
             queue_manager.initialize(telegram_client, db)
             return True
         except Exception as e:
-            print(f"Failed to start Telegram Client for Profile {active_prof}: {e}")
+            logger.error(f"❌ Failed to start Telegram Client for Profile {active_prof}: {e}", exc_info=True)
             telegram_client = None
             return False
+    
+    logger.warning(f"Profile {active_prof} is missing API credentials. Client not started.")
     return False
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global telegram_client, db_pool
+    logger.info("Initializing Database Pool...")
     db_pool = await init_db()
     
     await db_pool.execute('''
@@ -107,13 +120,19 @@ async def lifespan(app: FastAPI):
     ''')
     
     await db_pool.commit()
+    logger.info("Database initialized successfully.")
     
     await startup_telethon(db_pool)
+    
+    logger.info("Starting Orchestrator worker loop...")
     asyncio.create_task(queue_manager.worker_loop())
+    
     yield
     
+    logger.info("Shutting down WireKeeper Engine...")
     if telegram_client: await telegram_client.disconnect()
     await db_pool.close()
+    logger.info("Shutdown complete.")
 
 app = FastAPI(lifespan=lifespan)
 
@@ -138,13 +157,16 @@ async def websocket_endpoint(websocket: WebSocket):
 async def switch_profile(profile_id: str):
     global telegram_client
     if profile_id not in ["1", "2"]:
+        logger.warning(f"Rejecting invalid profile switch request: {profile_id}")
         raise HTTPException(status_code=400, detail="Invalid profile ID")
 
+    logger.info(f"--- ACCOUNT SWITCH INITIATED: Changing to Profile {profile_id} ---")
     await manager.broadcast({"event": "log", "message": f"Switching to Profile {profile_id}..."})
 
     await queue_manager.wipe_all()
 
     if telegram_client and telegram_client.is_connected():
+        logger.info("Disconnecting current Telegram client...")
         await telegram_client.disconnect()
 
     await update_setting(db_pool, 'active_profile', profile_id)
@@ -153,9 +175,6 @@ async def switch_profile(profile_id: str):
     
     status_msg = f"Profile {profile_id} active and connected." if success else f"Profile {profile_id} active (Needs setup)."
     await manager.broadcast({"event": "log", "message": status_msg})
-    
-    if success:
-        queue_manager.add_task("sync-all", {"chat_name": f"Profile {profile_id} Auto-Sync"})
     
     return {"status": "Profile switched", "connected": success}
 
@@ -234,8 +253,10 @@ async def toggle_chat_flags(req: ToggleRequest):
         async with db_pool.execute(query, params) as cursor:
             pass
         await db_pool.commit()
+        logger.debug(f"Toggled field '{req.field}' to {bool(val)} for {len(req.chat_ids)} chats.")
         return {"status": "success", "updated": len(req.chat_ids)}
     except Exception as e:
+        logger.error(f"Database error toggling flags: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/sync/multiple")
@@ -257,6 +278,7 @@ async def sync_multiple(req: MultiChatRequest):
         if tid: task_ids.append(tid)
 
     await queue_manager._broadcast_state()
+    logger.info(f"Enqueued {len(task_ids)} multi-sync tasks via UI.")
     return {"status": "Queued Multiple Syncs", "task_ids": task_ids}
 
 @app.post("/api/download/multiple")
@@ -281,10 +303,12 @@ async def download_multiple(req: MultiChatRequest):
         if tid: task_ids.append(tid)
 
     await queue_manager._broadcast_state()
+    logger.info(f"Enqueued {len(task_ids)} bulk download tasks via UI.")
     return {"status": "Queued Multiple Downloads", "task_ids": task_ids}
 
 @app.post("/api/sync")
 async def trigger_sync():
+    logger.info("Enqueued Global Sync All task via UI.")
     task_id = queue_manager.add_task("sync-all", {"chat_name": "Global Database"})
     return {"status": "Queued Sync All", "task_id": task_id}
 
@@ -295,6 +319,7 @@ async def trigger_chat_sync(chat_id: int):
         row = await cursor.fetchone()
         chat_name = row[0] if row else str(chat_id)
         
+    logger.info(f"Enqueued Single Sync task for chat {chat_id} via UI.")
     task_id = queue_manager.add_task("sync-single", {"chat_id": chat_id, "chat_name": chat_name})
     return {"status": "Queued Chat Sync", "task_id": task_id}
 
@@ -305,6 +330,7 @@ async def start_download(chat_id: int, overwrite: bool = False, validate: bool =
         row = await cursor.fetchone()
         chat_name = row[0] if row else str(chat_id)
         
+    logger.info(f"Enqueued Download task for chat {chat_id} via UI (Overwrite: {overwrite}, Validate: {validate}).")
     task_id = queue_manager.add_task("download-chat", {
         "chat_id": chat_id, "chat_name": chat_name, "overwrite": overwrite, "validate": validate, "resume": resume
     })
@@ -324,23 +350,19 @@ async def get_chat_files(chat_id: int):
         async with db_pool.execute(query, (api_id, chat_id)) as cursor:
             rows = await cursor.fetchall()
     except Exception as e:
+        logger.error(f"Database error fetching files for chat {chat_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
         
     categorized_files = {
-        "videos": [],
-        "images": [],
-        "archives": [],
-        "misc": [],
-        "audio": []
+        "videos": [], "images": [], "archives": [], "misc": [], "audio": []
     }
     
     for row in rows:
         msg_id, final_name, orig_name, size, path, date_dl = row
-        
         category = "misc"
         path_lower = path.lower() if path else ""
-        
         normalized_path = path_lower.replace('\\', '/')
+        
         if "/videos/" in normalized_path: category = "videos"
         elif "/images/" in normalized_path: category = "images"
         elif "/archives/" in normalized_path: category = "archives"
@@ -355,7 +377,6 @@ async def get_chat_files(chat_id: int):
             "date_downloaded": date_dl,
             "category": category
         }
-        
         categorized_files[category].append(file_data)
         
     return categorized_files
@@ -380,11 +401,14 @@ async def start_batch(overwrite: bool = False, validate: bool = False, resume: b
         batch_targets = await cursor.fetchall()
         
     if not batch_targets:
+        logger.warning("Batch start requested, but no valid chats were found.")
         return {"status": "No valid chats marked for batch download.", "task_ids": []}
 
     batch_id = str(uuid.uuid4())
     total_chats = len(batch_targets)
     task_ids = []
+
+    logger.info(f"INITIATING BATCH {batch_id}: Queuing {total_chats} chats for processing.")
 
     for i, row in enumerate(batch_targets, 1):
         chat_id, chat_name = row[0], row[1]
@@ -405,6 +429,7 @@ async def start_batch(overwrite: bool = False, validate: bool = False, resume: b
 
 @app.delete("/api/queue/batch/{batch_id}")
 async def kill_batch(batch_id: str):
+    logger.info(f"Kill signal received for Batch ID: {batch_id}")
     result = await queue_manager.kill_batch(batch_id)
     return result
 
@@ -417,11 +442,13 @@ async def get_queue():
 
 @app.delete("/api/queue/singles")
 async def kill_all_singles():
+    logger.info("Kill signal received for all standalone tasks.")
     result = await queue_manager.kill_all_singles()
     return result
 
 @app.delete("/api/queue/{task_id}")
 async def kill_task(task_id: str):
+    logger.info(f"Kill signal received for Task ID: {task_id}")
     result = await queue_manager.kill_task(task_id)
     return result
 
@@ -434,6 +461,9 @@ async def system_status():
     return {
         "setup_complete": setup_complete,
         "active_profile": active_prof,
+        "profile_1_name": settings.get('profile_1_account_name', 'Account 1'),
+        "profile_2_name": settings.get('profile_2_account_name', 'Account 2'),
+        "last_global_sync": settings.get(f'profile_{active_prof}_last_global_sync', 'Never'),
         "client_connected": telegram_client.is_connected() if telegram_client else False,
         "active_ws_connections": len(manager.active_connections)
     }
@@ -448,6 +478,7 @@ async def save_settings(settings: SettingsUpdate):
     for key, value in settings_dict.items():
         await update_setting(db_pool, key, value) 
     
+    logger.info("Configuration Settings updated by UI.")
     return {"status": "Settings saved successfully."}
 
 @app.get("/api/history")
@@ -469,10 +500,11 @@ async def clear_activity_history():
     api_id = await get_active_api_id()
     await db_pool.execute("DELETE FROM activity_history WHERE api_id = ?", (api_id,))
     await db_pool.commit()
+    logger.info("Activity History manually purged via UI.")
     return {"status": "History cleared."}
     
 if __name__ == "__main__":
     import uvicorn
     app_port = int(os.getenv("WIREKEEPER_PORT", 39486))
     app_host = os.getenv("WIREKEEPER_HOST", "0.0.0.0")
-    uvicorn.run("main:app", host=app_host, port=app_port, reload=True)
+    uvicorn.run("main:app", host=app_host, port=app_port, reload=True, log_level="warning")

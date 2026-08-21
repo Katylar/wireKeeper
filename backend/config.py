@@ -9,13 +9,16 @@ if not os.path.exists(ENV_FILE):
         f.write("WIREKEEPER_DB_PATH=wirekeeper.db\n")
         f.write("WIREKEEPER_PORT=39486\n")
         f.write("WIREKEEPER_HOST=0.0.0.0\n")
-        f.write("WIREKEEPER_LOG_LEVEL=info\n")
+        f.write("WIREKEEPER_LOG_LEVEL=DEBUG\n")
+        f.write("WIREKEEPER_LOG_FILE=wirekeeper.log\n")
 
 # Load environment variables into os.environ
 load_dotenv(ENV_FILE)
 
 # Core Boot Variables
 DB_NAME = os.getenv("WIREKEEPER_DB_PATH", "wirekeeper.db")
+LOG_LEVEL = os.getenv("WIREKEEPER_LOG_LEVEL", "DEBUG").upper()
+LOG_FILE = os.getenv("WIREKEEPER_LOG_FILE", "wirekeeper.log")
 
 # Static Constants
 PHOTO_EXTS = {".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".png", ".webp", ".gif", ".avif", ".svg", ".svgz",".tiff", ".tif", ".heic", ".heif", ".psd", ".psb", ".ai", ".eps", ".bmp", ".ico", ".cur",".dng", ".cr2", ".cr3", ".nef", ".arw", ".srf", ".sr2", ".raf", ".orf", ".rw2"}

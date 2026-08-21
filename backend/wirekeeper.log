@@ -1,0 +1,62 @@
+2026-08-21 20:41:20 | INFO     | main         | Initializing Database Pool...
+2026-08-21 20:41:20 | INFO     | main         | Database initialized successfully.
+2026-08-21 20:41:20 | INFO     | main         | Attempting to start Telegram Client for Profile 2 (Session: wirekeeper_session_2)...
+2026-08-21 20:41:21 | INFO     | main         | ✅ WireKeeper Engine Started Successfully (Active Profile: 2).
+2026-08-21 20:41:21 | INFO     | main         | Starting Orchestrator worker loop...
+2026-08-21 20:41:21 | INFO     | orchestrator | Orchestrator worker loop actively listening for tasks.
+2026-08-21 20:41:43 | INFO     | main         | --- ACCOUNT SWITCH INITIATED: Changing to Profile 1 ---
+2026-08-21 20:41:43 | WARNING  | orchestrator | Executing complete wipe of Orchestrator queue and active tasks!
+2026-08-21 20:41:43 | INFO     | main         | Disconnecting current Telegram client...
+2026-08-21 20:41:43 | INFO     | main         | Attempting to start Telegram Client for Profile 1 (Session: wirekeeper_session)...
+2026-08-21 20:41:44 | INFO     | main         | ✅ WireKeeper Engine Started Successfully (Active Profile: 1).
+2026-08-21 20:41:58 | INFO     | main         | --- ACCOUNT SWITCH INITIATED: Changing to Profile 2 ---
+2026-08-21 20:41:58 | WARNING  | orchestrator | Executing complete wipe of Orchestrator queue and active tasks!
+2026-08-21 20:41:58 | INFO     | main         | Disconnecting current Telegram client...
+2026-08-21 20:41:58 | INFO     | main         | Attempting to start Telegram Client for Profile 2 (Session: wirekeeper_session_2)...
+2026-08-21 20:41:58 | INFO     | main         | ✅ WireKeeper Engine Started Successfully (Active Profile: 2).
+2026-08-21 20:58:23 | INFO     | main         | --- ACCOUNT SWITCH INITIATED: Changing to Profile 1 ---
+2026-08-21 20:58:23 | WARNING  | orchestrator | Executing complete wipe of Orchestrator queue and active tasks!
+2026-08-21 20:58:23 | INFO     | main         | Disconnecting current Telegram client...
+2026-08-21 20:58:23 | INFO     | main         | Attempting to start Telegram Client for Profile 1 (Session: wirekeeper_session)...
+2026-08-21 20:58:24 | INFO     | main         | ✅ WireKeeper Engine Started Successfully (Active Profile: 1).
+2026-08-21 20:58:50 | INFO     | main         | Enqueued Global Sync All task via UI.
+2026-08-21 20:58:50 | INFO     | orchestrator | --- LAUNCHING TASK: sync-all ---
+2026-08-21 20:58:50 | INFO     | downloader   | --- STARTING GLOBAL CHATLIST SYNC ---
+2026-08-21 20:59:24 | WARNING  | downloader   | History wipe detected for 3633848028 (𝙋!𝙉𝘼𝙔 𝙎𝙊𝙐𝙍𝘾𝙀). Metadata preserved but marked dead.
+2026-08-21 20:59:25 | WARNING  | downloader   | History wipe detected for 2726017540 (🔥𝙱𝙴𝙻𝙾𝚆 𝟷𝟾🔥). Metadata preserved but marked dead.
+2026-08-21 20:59:26 | WARNING  | downloader   | History wipe detected for 3842405545 (E̶x̶c̶e̶p̶t̶i̶o̶n̶a̶l̶ L̶u̶n̶a̶). Metadata preserved but marked dead.
+2026-08-21 20:59:26 | WARNING  | downloader   | History wipe detected for 3530704592 (NIGHT PARTY). Metadata preserved but marked dead.
+2026-08-21 20:59:53 | WARNING  | downloader   | History wipe detected for 3495611102 (𝑩𝑨𝑮𝑺𝑨𝑲𝑨𝑵 𝑵𝑮 𝑬𝑺𝑻𝑼𝑫𝒀𝑨𝑵𝑻𝑬). Metadata preserved but marked dead.
+2026-08-21 20:59:53 | WARNING  | downloader   | History wipe detected for 1801160866 (CUM ON FOOD / SWALLOW). Metadata preserved but marked dead.
+2026-08-21 20:59:53 | WARNING  | downloader   | History wipe detected for 3745977183 (𝑩𝑨𝑮𝑺𝑨𝑲𝑨𝑵 𝑵𝑮 𝑬𝑺𝑻𝑼𝑫𝒀𝑨𝑵𝑻𝑬). Metadata preserved but marked dead.
+2026-08-21 20:59:54 | WARNING  | downloader   | History wipe detected for 3497038163 (SP4DE PREMIUM META). Metadata preserved but marked dead.
+2026-08-21 20:59:54 | WARNING  | downloader   | History wipe detected for 3544089486 (FUN ONLY). Metadata preserved but marked dead.
+2026-08-21 20:59:54 | WARNING  | downloader   | History wipe detected for 3884266868 (PINAYLEAK 3.0). Metadata preserved but marked dead.
+2026-08-21 20:59:54 | WARNING  | downloader   | History wipe detected for 2889156809 (OME TV [FREE]). Metadata preserved but marked dead.
+2026-08-21 20:59:54 | WARNING  | downloader   | History wipe detected for 1707509987 (Dark Paradise Random Leak). Metadata preserved but marked dead.
+2026-08-21 20:59:55 | WARNING  | downloader   | History wipe detected for 2818832413 (.-. ..- ... .. / ... .... --- .-- .-. --- --- --). Metadata preserved but marked dead.
+2026-08-21 20:59:55 | WARNING  | downloader   | History wipe detected for 3518115357 (𝚂𝚃. 𝙶𝙴𝚁𝚁𝙰𝚁𝙳 𝙲𝙾𝙽𝚂𝚃𝚁𝚄𝙲𝚃𝙸𝙾𝙽). Metadata preserved but marked dead.
+2026-08-21 20:59:55 | WARNING  | downloader   | History wipe detected for 2697595297 (𝐎𝐌𝐄 𝐏𝐇). Metadata preserved but marked dead.
+2026-08-21 20:59:55 | WARNING  | downloader   | History wipe detected for 2696058965 (𝚄𝚂𝙴𝙲 𝙲𝙰𝚃𝙷𝚈 𝙲𝙰𝙱𝚁𝙰𝙻 𝙵𝙸𝙻𝙴𝚂). Metadata preserved but marked dead.
+2026-08-21 20:59:55 | WARNING  | downloader   | History wipe detected for 3321663674 (𝙳𝚎𝚊𝚗'𝚜 𝙻𝚒𝚜𝚝). Metadata preserved but marked dead.
+2026-08-21 21:00:55 | WARNING  | downloader   | History wipe detected for 2377486489 (Pinay hub premium). Metadata preserved but marked dead.
+2026-08-21 21:02:32 | WARNING  | downloader   | History wipe detected for 1490976537 (Pnay Lapagan V.2). Metadata preserved but marked dead.
+2026-08-21 21:05:37 | INFO     | downloader   | Auto-disabling 71 inaccessible/ghost chats.
+2026-08-21 21:05:37 | INFO     | downloader   | --- GLOBAL CHATLIST SYNC COMPLETE ---
+2026-08-21 21:05:37 | INFO     | orchestrator | --- TASK COMPLETED: sync-all ---
+2026-08-21 21:33:14 | INFO     | main         | --- ACCOUNT SWITCH INITIATED: Changing to Profile 2 ---
+2026-08-21 21:33:14 | WARNING  | orchestrator | Executing complete wipe of Orchestrator queue and active tasks!
+2026-08-21 21:33:14 | INFO     | main         | Disconnecting current Telegram client...
+2026-08-21 21:33:14 | INFO     | main         | Attempting to start Telegram Client for Profile 2 (Session: wirekeeper_session_2)...
+2026-08-21 21:33:14 | INFO     | main         | ✅ WireKeeper Engine Started Successfully (Active Profile: 2).
+2026-08-21 21:33:19 | INFO     | main         | Enqueued Global Sync All task via UI.
+2026-08-21 21:33:19 | INFO     | orchestrator | --- LAUNCHING TASK: sync-all ---
+2026-08-21 21:33:19 | INFO     | downloader   | --- STARTING GLOBAL CHATLIST SYNC ---
+2026-08-21 21:34:58 | INFO     | main         | Configuration Settings updated by UI.
+2026-08-21 21:35:25 | INFO     | downloader   | --- GLOBAL CHATLIST SYNC COMPLETE ---
+2026-08-21 21:35:25 | INFO     | orchestrator | --- TASK COMPLETED: sync-all ---
+2026-08-21 21:36:50 | INFO     | main         | Enqueued Download task for chat 1199628034 via UI (Overwrite: False, Validate: False).
+2026-08-21 21:36:50 | INFO     | orchestrator | --- LAUNCHING TASK: download-chat ---
+2026-08-21 21:36:50 | INFO     | downloader   | --- INIT DOWNLOAD SCAN: Chat 1199628034 ---
+2026-08-21 21:36:50 | INFO     | downloader   | [1199628034] Commencing Telegram message iteration starting from ID: 45275
+2026-08-21 21:36:51 | INFO     | downloader   | [1199628034] Found 6636 historically incomplete files in database. Appending to queue...

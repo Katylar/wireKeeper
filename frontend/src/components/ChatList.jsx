@@ -8,7 +8,8 @@ import "../styles/layout/chatlist.scss";
 
 export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
     // --- ORCHESTRATOR STATE ---
-    const { currentTask, queue, getTaskForChat, killTask } = useEngine();
+    // FIXED: Added systemStatus to the extracted variables so it doesn't crash the render!
+    const { currentTask, queue, getTaskForChat, killTask, systemStatus } = useEngine();
 
     // --- UI STATE ---
     const [searchQuery, setSearchQuery] = useState("");
@@ -102,9 +103,7 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
                     setTempFilterConfig(parsedFilter);
                 }
             })
-            .catch((err) =>
-                console.error("Failed to load UI preferences:", err),
-            );
+            .catch((err) => console.error("Failed to load UI preferences:", err));
     }, []);
 
     // --- DATA PIPELINE ---
@@ -119,32 +118,21 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
             if (filterConfig.onlyBatchDisabled && chat.is_batch) return false;
             if (filterConfig.onlyDeferred && !chat.defer) return false;
             if (filterConfig.onlyNonDeferred && chat.defer) return false;
-            if (
-                filterConfig.onlyMultiTopic &&
-                (!chat.topics || chat.topics.length <= 1)
-            )
-                return false;
-            if (filterConfig.onlyEmptyVaults && chat.total_downloaded !== 0)
-                return false;
-            if (filterConfig.onlyEmptyChats && chat.total_messages !== 0)
-                return false;
+            if (filterConfig.onlyMultiTopic && (!chat.topics || chat.topics.length <= 1)) return false;
+            if (filterConfig.onlyEmptyVaults && chat.total_downloaded !== 0) return false;
+            if (filterConfig.onlyEmptyChats && chat.total_messages !== 0) return false;
             if (filterConfig.onlyUnarchived && chat.last_archived) return false;
             if (!filterConfig.showGroups && chat.type === "Group") return false;
-            if (!filterConfig.showChannels && chat.type === "Channel")
-                return false;
-            if (!filterConfig.showPrivate && chat.type === "Private")
-                return false;
+            if (!filterConfig.showChannels && chat.type === "Channel") return false;
+            if (!filterConfig.showPrivate && chat.type === "Private") return false;
 
             if (searchQuery) {
                 const q = searchQuery.toLowerCase();
                 const matchName = chat.name?.toLowerCase().includes(q);
-                const matchFolderName = chat.folder_name
-                    ?.toLowerCase()
-                    .includes(q);
+                const matchFolderName = chat.folder_name?.toLowerCase().includes(q);
                 const matchOldName = chat.old_name?.toLowerCase().includes(q);
                 const matchId = chat.chat_id.toString().includes(q);
-                if (!matchName && !matchFolderName && !matchOldName && !matchId)
-                    return false;
+                if (!matchName && !matchFolderName && !matchOldName && !matchId) return false;
             }
             return true;
         });
@@ -152,10 +140,8 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
         result.sort((a, b) => {
             let valA = a[sortConfig.key];
             let valB = b[sortConfig.key];
-            if (valA === null || valA === undefined)
-                valA = typeof valB === "string" ? "" : 0;
-            if (valB === null || valB === undefined)
-                valB = typeof valA === "string" ? "" : 0;
+            if (valA === null || valA === undefined) valA = typeof valB === "string" ? "" : 0;
+            if (valB === null || valB === undefined) valB = typeof valA === "string" ? "" : 0;
             if (typeof valA === "string" && typeof valB === "string") {
                 valA = valA.toLowerCase();
                 valB = valB.toLowerCase();
@@ -169,31 +155,15 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
     }, [chats, filterConfig, sortConfig, searchQuery]);
 
     // DERIVED SELECTIONS (Respecting Shown and Enabled)
-    const listedEnabledChats = useMemo(
-        () => processedChats.filter((c) => c.enabled),
-        [processedChats],
-    );
-    const selectedEnabledChats = useMemo(
-        () =>
-            processedChats.filter(
-                (c) => selectedChats.has(c.chat_id) && c.enabled,
-            ),
-        [processedChats, selectedChats],
-    );
+    const listedEnabledChats = useMemo(() => processedChats.filter((c) => c.enabled), [processedChats]);
+    const selectedEnabledChats = useMemo(() => processedChats.filter((c) => selectedChats.has(c.chat_id) && c.enabled), [processedChats, selectedChats]);
 
     // RESTORED: Missing Boolean flags for Button Labels
-    const selectedData = useMemo(
-        () => processedChats.filter((c) => selectedChats.has(c.chat_id)),
-        [processedChats, selectedChats],
-    );
-    const isAllEnabled =
-        selectedData.length > 0 && selectedData.every((chat) => chat.enabled);
-    const isAllHidden =
-        selectedData.length > 0 && selectedData.every((chat) => chat.hidden);
-    const isAllBatch =
-        selectedData.length > 0 && selectedData.every((chat) => chat.is_batch);
-    const isAllDeferred =
-        selectedData.length > 0 && selectedData.every((chat) => chat.defer);
+    const selectedData = useMemo(() => processedChats.filter((c) => selectedChats.has(c.chat_id)), [processedChats, selectedChats]);
+    const isAllEnabled = selectedData.length > 0 && selectedData.every((chat) => chat.enabled);
+    const isAllHidden = selectedData.length > 0 && selectedData.every((chat) => chat.hidden);
+    const isAllBatch = selectedData.length > 0 && selectedData.every((chat) => chat.is_batch);
+    const isAllDeferred = selectedData.length > 0 && selectedData.every((chat) => chat.defer);
 
     const totalChats = chats.length;
     const visibleChats = processedChats.length;
@@ -202,29 +172,16 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
     const totalHiddenCount = chats.filter((c) => c.hidden).length;
     const totalDisabledCount = chats.filter((c) => !c.enabled).length;
     const totalDeadCount = chats.filter((c) => !c.chat_status).length;
-    const totalBatchChats = chats.filter(
-        (c) => c.is_batch && c.enabled && c.chat_status,
-    ).length;
+    const totalBatchChats = chats.filter((c) => c.is_batch && c.enabled && c.chat_status).length;
 
     // --- QUEUE DETECTION FOR BUTTONS ---
-    const isBatchBusy = useMemo(
-        () =>
-            currentTask?.type === "batch-download" ||
-            queue.some((t) => t.type === "batch-download"),
-        [currentTask, queue],
-    );
+    const isBatchBusy = useMemo(() => currentTask?.type === "batch-download" || queue.some((t) => t.type === "batch-download"), [currentTask, queue]);
 
-    const isSyncBusy = useMemo(
-        () =>
-            currentTask?.type === "sync-all" ||
-            queue.some((t) => t.type === "sync-all"),
-        [currentTask, queue],
-    );
+    const isSyncBusy = useMemo(() => currentTask?.type === "sync-all" || queue.some((t) => t.type === "sync-all"), [currentTask, queue]);
 
     // --- HANDLERS ---
     const handleSelectAll = (e) => {
-        if (e.target.checked)
-            setSelectedChats(new Set(processedChats.map((c) => c.chat_id)));
+        if (e.target.checked) setSelectedChats(new Set(processedChats.map((c) => c.chat_id)));
         else setSelectedChats(new Set());
     };
 
@@ -235,9 +192,7 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
         setSelectedChats(newSet);
     };
 
-    const isAllSelected =
-        processedChats.length > 0 &&
-        selectedChats.size === processedChats.length;
+    const isAllSelected = processedChats.length > 0 && selectedChats.size === processedChats.length;
 
     const handleTempFilterChange = (key, value) => {
         setTempFilterConfig((prev) => {
@@ -246,14 +201,10 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
             if (key === "onlyDisabled" && value) updates.onlyEnabled = false;
             if (key === "onlyLive" && value) updates.onlyDead = false;
             if (key === "onlyDead" && value) updates.onlyLive = false;
-            if (key === "onlyBatchEnabled" && value)
-                updates.onlyBatchDisabled = false;
-            if (key === "onlyBatchDisabled" && value)
-                updates.onlyBatchEnabled = false;
-            if (key === "onlyDeferred" && value)
-                updates.onlyNonDeferred = false;
-            if (key === "onlyNonDeferred" && value)
-                updates.onlyDeferred = false;
+            if (key === "onlyBatchEnabled" && value) updates.onlyBatchDisabled = false;
+            if (key === "onlyBatchDisabled" && value) updates.onlyBatchEnabled = false;
+            if (key === "onlyDeferred" && value) updates.onlyNonDeferred = false;
+            if (key === "onlyNonDeferred" && value) updates.onlyDeferred = false;
             return { ...prev, ...updates };
         });
     };
@@ -262,14 +213,12 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
         if (setChats) {
             setChats((prevChats) =>
                 prevChats.map((chat) => {
-                    if (chatIds.includes(chat.chat_id))
-                        return { ...chat, [field]: targetValue };
+                    if (chatIds.includes(chat.chat_id)) return { ...chat, [field]: targetValue };
                     return chat;
                 }),
             );
         }
-        if (field === "hidden" && targetValue === true)
-            setSelectedChats(new Set());
+        if (field === "hidden" && targetValue === true) setSelectedChats(new Set());
         try {
             await fetch("http://localhost:39486/api/chats/toggle", {
                 method: "POST",
@@ -289,9 +238,7 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
 
     const handleBulkToggle = (field) => {
         const selectedArr = Array.from(selectedChats);
-        const selectedData = processedChats.filter((c) =>
-            selectedArr.includes(c.chat_id),
-        );
+        const selectedData = processedChats.filter((c) => selectedArr.includes(c.chat_id));
         const targetValue = selectedData.some((c) => !c[field]);
         handleToggle(selectedArr, field, targetValue);
     };
@@ -306,10 +253,7 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
     };
 
     const handleSyncGroup = async (mode) => {
-        const ids =
-            mode === "selected"
-                ? Array.from(selectedChats)
-                : listedEnabledChats.map((c) => c.chat_id);
+        const ids = mode === "selected" ? Array.from(selectedChats) : listedEnabledChats.map((c) => c.chat_id);
         try {
             await fetch("http://localhost:39486/api/sync/multiple", {
                 method: "POST",
@@ -330,10 +274,7 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
                 resume: dlConfig.resume,
                 sort: dlConfig.sort,
             });
-            await fetch(
-                `http://localhost:39486/api/batch/start?${params.toString()}`,
-                { method: "POST" },
-            );
+            await fetch(`http://localhost:39486/api/batch/start?${params.toString()}`, { method: "POST" });
             closeModal();
             if (onRefresh) onRefresh();
         } catch (err) {
@@ -342,10 +283,7 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
     };
 
     const handleEnqueueDownloads = async (mode) => {
-        const ids =
-            mode === "selected"
-                ? selectedEnabledChats.map((c) => c.chat_id)
-                : listedEnabledChats.map((c) => c.chat_id);
+        const ids = mode === "selected" ? selectedEnabledChats.map((c) => c.chat_id) : listedEnabledChats.map((c) => c.chat_id);
         try {
             await fetch("http://localhost:39486/api/download/multiple", {
                 method: "POST",
@@ -520,226 +458,72 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
             <div className="modal-section">
                 <strong className="section-title">Visibility</strong>
                 <label className="modal-input-label">
-                    <input
-                        type="checkbox"
-                        checked={tempFilterConfig.showHidden}
-                        onChange={(e) =>
-                            handleTempFilterChange(
-                                "showHidden",
-                                e.target.checked,
-                            )
-                        }
-                    />{" "}
-                    Show Hidden Chats
+                    <input type="checkbox" checked={tempFilterConfig.showHidden} onChange={(e) => handleTempFilterChange("showHidden", e.target.checked)} /> Show Hidden Chats
                 </label>
             </div>
             <hr className="modal-divider" />
             <div className="modal-section">
                 <strong className="section-title">State</strong>
                 <label className="modal-input-label">
-                    <input
-                        type="checkbox"
-                        checked={tempFilterConfig.onlyEnabled}
-                        onChange={(e) =>
-                            handleTempFilterChange(
-                                "onlyEnabled",
-                                e.target.checked,
-                            )
-                        }
-                    />{" "}
-                    Show ONLY Enabled Chats
+                    <input type="checkbox" checked={tempFilterConfig.onlyEnabled} onChange={(e) => handleTempFilterChange("onlyEnabled", e.target.checked)} /> Show ONLY Enabled Chats
                 </label>
                 <label className="modal-input-label">
-                    <input
-                        type="checkbox"
-                        checked={tempFilterConfig.onlyDisabled}
-                        onChange={(e) =>
-                            handleTempFilterChange(
-                                "onlyDisabled",
-                                e.target.checked,
-                            )
-                        }
-                    />{" "}
-                    Show ONLY Disabled Chats
+                    <input type="checkbox" checked={tempFilterConfig.onlyDisabled} onChange={(e) => handleTempFilterChange("onlyDisabled", e.target.checked)} /> Show ONLY Disabled Chats
                 </label>
                 <label className="modal-input-label">
-                    <input
-                        type="checkbox"
-                        checked={tempFilterConfig.onlyLive}
-                        onChange={(e) =>
-                            handleTempFilterChange("onlyLive", e.target.checked)
-                        }
-                    />{" "}
-                    Show ONLY Live Chats
+                    <input type="checkbox" checked={tempFilterConfig.onlyLive} onChange={(e) => handleTempFilterChange("onlyLive", e.target.checked)} /> Show ONLY Live Chats
                 </label>
                 <label className="modal-input-label">
-                    <input
-                        type="checkbox"
-                        checked={tempFilterConfig.onlyDead}
-                        onChange={(e) =>
-                            handleTempFilterChange("onlyDead", e.target.checked)
-                        }
-                    />{" "}
-                    Show ONLY Dead Chats
+                    <input type="checkbox" checked={tempFilterConfig.onlyDead} onChange={(e) => handleTempFilterChange("onlyDead", e.target.checked)} /> Show ONLY Dead Chats
                 </label>
             </div>
             <hr className="modal-divider" />
             <div className="modal-section">
                 <strong className="section-title">Batch Engine</strong>
                 <label className="modal-input-label">
-                    <input
-                        type="checkbox"
-                        checked={tempFilterConfig.onlyBatchEnabled}
-                        onChange={(e) =>
-                            handleTempFilterChange(
-                                "onlyBatchEnabled",
-                                e.target.checked,
-                            )
-                        }
-                    />{" "}
-                    Show ONLY Batch-Enabled
+                    <input type="checkbox" checked={tempFilterConfig.onlyBatchEnabled} onChange={(e) => handleTempFilterChange("onlyBatchEnabled", e.target.checked)} /> Show ONLY Batch-Enabled
                 </label>
                 <label className="modal-input-label">
-                    <input
-                        type="checkbox"
-                        checked={tempFilterConfig.onlyBatchDisabled}
-                        onChange={(e) =>
-                            handleTempFilterChange(
-                                "onlyBatchDisabled",
-                                e.target.checked,
-                            )
-                        }
-                    />{" "}
-                    Show ONLY Batch-Disabled
+                    <input type="checkbox" checked={tempFilterConfig.onlyBatchDisabled} onChange={(e) => handleTempFilterChange("onlyBatchDisabled", e.target.checked)} /> Show ONLY Batch-Disabled
                 </label>
             </div>
             <hr className="modal-divider" />
             <div className="modal-section">
                 <strong className="section-title">Queue Management</strong>
                 <label className="modal-input-label">
-                    <input
-                        type="checkbox"
-                        checked={tempFilterConfig.onlyDeferred}
-                        onChange={(e) =>
-                            handleTempFilterChange(
-                                "onlyDeferred",
-                                e.target.checked,
-                            )
-                        }
-                    />{" "}
-                    Show ONLY Deferred
+                    <input type="checkbox" checked={tempFilterConfig.onlyDeferred} onChange={(e) => handleTempFilterChange("onlyDeferred", e.target.checked)} /> Show ONLY Deferred
                 </label>
                 <label className="modal-input-label">
-                    <input
-                        type="checkbox"
-                        checked={tempFilterConfig.onlyNonDeferred}
-                        onChange={(e) =>
-                            handleTempFilterChange(
-                                "onlyNonDeferred",
-                                e.target.checked,
-                            )
-                        }
-                    />{" "}
-                    Show ONLY Non-Deferred
+                    <input type="checkbox" checked={tempFilterConfig.onlyNonDeferred} onChange={(e) => handleTempFilterChange("onlyNonDeferred", e.target.checked)} /> Show ONLY Non-Deferred
                 </label>
             </div>
             <hr className="modal-divider" />
             <div className="modal-section">
                 <strong className="section-title">Chat Attributes</strong>
                 <label className="modal-input-label">
-                    <input
-                        type="checkbox"
-                        checked={tempFilterConfig.onlyMultiTopic}
-                        onChange={(e) =>
-                            handleTempFilterChange(
-                                "onlyMultiTopic",
-                                e.target.checked,
-                            )
-                        }
-                    />{" "}
-                    Show ONLY Multi-Topic
+                    <input type="checkbox" checked={tempFilterConfig.onlyMultiTopic} onChange={(e) => handleTempFilterChange("onlyMultiTopic", e.target.checked)} /> Show ONLY Multi-Topic
                 </label>
                 <label className="modal-input-label">
-                    <input
-                        type="checkbox"
-                        checked={tempFilterConfig.onlyEmptyVaults}
-                        onChange={(e) =>
-                            handleTempFilterChange(
-                                "onlyEmptyVaults",
-                                e.target.checked,
-                            )
-                        }
-                    />{" "}
-                    Show ONLY Empty Vaults
+                    <input type="checkbox" checked={tempFilterConfig.onlyEmptyVaults} onChange={(e) => handleTempFilterChange("onlyEmptyVaults", e.target.checked)} /> Show ONLY Empty Vaults
                 </label>
                 <label className="modal-input-label">
-                    <input
-                        type="checkbox"
-                        checked={tempFilterConfig.onlyEmptyChats}
-                        onChange={(e) =>
-                            handleTempFilterChange(
-                                "onlyEmptyChats",
-                                e.target.checked,
-                            )
-                        }
-                    />{" "}
-                    Show ONLY Empty Chats
+                    <input type="checkbox" checked={tempFilterConfig.onlyEmptyChats} onChange={(e) => handleTempFilterChange("onlyEmptyChats", e.target.checked)} /> Show ONLY Empty Chats
                 </label>
                 <label className="modal-input-label">
-                    <input
-                        type="checkbox"
-                        checked={tempFilterConfig.onlyUnarchived}
-                        onChange={(e) =>
-                            handleTempFilterChange(
-                                "onlyUnarchived",
-                                e.target.checked,
-                            )
-                        }
-                    />{" "}
-                    Show ONLY Unarchived
+                    <input type="checkbox" checked={tempFilterConfig.onlyUnarchived} onChange={(e) => handleTempFilterChange("onlyUnarchived", e.target.checked)} /> Show ONLY Unarchived
                 </label>
             </div>
             <hr className="modal-divider" />
             <div className="modal-section">
                 <strong className="section-title">Type Filters</strong>
                 <label className="modal-input-label">
-                    <input
-                        type="checkbox"
-                        checked={tempFilterConfig.showGroups}
-                        onChange={(e) =>
-                            handleTempFilterChange(
-                                "showGroups",
-                                e.target.checked,
-                            )
-                        }
-                    />{" "}
-                    Show Groups
+                    <input type="checkbox" checked={tempFilterConfig.showGroups} onChange={(e) => handleTempFilterChange("showGroups", e.target.checked)} /> Show Groups
                 </label>
                 <label className="modal-input-label">
-                    <input
-                        type="checkbox"
-                        checked={tempFilterConfig.showChannels}
-                        onChange={(e) =>
-                            handleTempFilterChange(
-                                "showChannels",
-                                e.target.checked,
-                            )
-                        }
-                    />{" "}
-                    Show Channels
+                    <input type="checkbox" checked={tempFilterConfig.showChannels} onChange={(e) => handleTempFilterChange("showChannels", e.target.checked)} /> Show Channels
                 </label>
                 <label className="modal-input-label">
-                    <input
-                        type="checkbox"
-                        checked={tempFilterConfig.showPrivate}
-                        onChange={(e) =>
-                            handleTempFilterChange(
-                                "showPrivate",
-                                e.target.checked,
-                            )
-                        }
-                    />{" "}
-                    Show Private Conversations
+                    <input type="checkbox" checked={tempFilterConfig.showPrivate} onChange={(e) => handleTempFilterChange("showPrivate", e.target.checked)} /> Show Private Conversations
                 </label>
             </div>
         </div>
@@ -748,13 +532,8 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
     const renderBatchModal = () => (
         <div className="modal-content-wrapper batch-wrapper">
             <div className="modal-section">
-                <div
-                    className="chat-meta"
-                    style={{ fontSize: "1.1rem", marginBottom: "1rem" }}>
-                    Total Chats in Batch:{" "}
-                    <span className="stat-value highlight">
-                        {totalBatchChats}
-                    </span>
+                <div className="chat-meta" style={{ fontSize: "1.1rem", marginBottom: "1rem" }}>
+                    Total Chats in Batch: <span className="stat-value highlight">{totalBatchChats}</span>
                 </div>
                 <label
                     className="modal-input-label"
@@ -764,17 +543,13 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
                         alignItems: "flex-start",
                         gap: "0.5rem",
                     }}>
-                    <strong
-                        className="section-title"
-                        style={{ marginBottom: "0" }}>
+                    <strong className="section-title" style={{ marginBottom: "0" }}>
                         Sequence
                     </strong>
                     <select
                         className="modal-select"
                         value={dlConfig.sort}
-                        onChange={(e) =>
-                            setDlConfig({ ...dlConfig, sort: e.target.value })
-                        }
+                        onChange={(e) => setDlConfig({ ...dlConfig, sort: e.target.value })}
                         style={{
                             padding: "0.4rem",
                             borderRadius: "4px",
@@ -783,25 +558,13 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
                             color: "#cdd6f4",
                             width: "100%",
                         }}>
-                        <option value="default">
-                            Default (Deferred last, then Message Count)
-                        </option>
+                        <option value="default">Default (Deferred last, then Message Count)</option>
                         <option value="chat_id_asc">Chat ID (Ascending)</option>
-                        <option value="chat_id_desc">
-                            Chat ID (Descending)
-                        </option>
-                        <option value="messages_asc">
-                            Message Count (Ascending)
-                        </option>
-                        <option value="messages_desc">
-                            Message Count (Descending)
-                        </option>
-                        <option value="date_added_asc">
-                            Date Added (Ascending)
-                        </option>
-                        <option value="date_added_desc">
-                            Date Added (Descending)
-                        </option>
+                        <option value="chat_id_desc">Chat ID (Descending)</option>
+                        <option value="messages_asc">Message Count (Ascending)</option>
+                        <option value="messages_desc">Message Count (Descending)</option>
+                        <option value="date_added_asc">Date Added (Ascending)</option>
+                        <option value="date_added_desc">Date Added (Descending)</option>
                     </select>
                 </label>
                 <small
@@ -861,22 +624,14 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
 
     const renderDownloadModal = (mode) => {
         const isSelected = mode === "selected";
-        const count = isSelected
-            ? selectedEnabledChats.length
-            : listedEnabledChats.length;
-        const title = isSelected
-            ? "Download all Selected Chats"
-            : "Download all Listed Chats";
+        const count = isSelected ? selectedEnabledChats.length : listedEnabledChats.length;
+        const title = isSelected ? "Download all Selected Chats" : "Download all Listed Chats";
 
         return (
             <div className="modal-content-wrapper batch-wrapper">
                 <div className="modal-section">
-                    <div
-                        className="chat-meta"
-                        style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>
-                        {isSelected
-                            ? "Total Chats in Selected: "
-                            : "Total Chats in Shown and Enabled: "}
+                    <div className="chat-meta" style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>
+                        {isSelected ? "Total Chats in Selected: " : "Total Chats in Shown and Enabled: "}
                         <span className="stat-value highlight">{count}</span>
                     </div>
                     <div
@@ -944,10 +699,7 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
                 title="Sort Chats"
                 footerActions={
                     <>
-                        <button
-                            className="btn-reset-outline"
-                            style={{ marginRight: "auto" }}
-                            onClick={() => setTempSortConfig(defaultSort)}>
+                        <button className="btn-reset-outline" style={{ marginRight: "auto" }} onClick={() => setTempSortConfig(defaultSort)}>
                             Reset Sorting to Default
                         </button>
                         <button className="btn-cancel" onClick={closeModal}>
@@ -967,10 +719,7 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
                 title="Filter Chats"
                 footerActions={
                     <>
-                        <button
-                            className="btn-reset-outline"
-                            style={{ marginRight: "auto" }}
-                            onClick={() => setTempFilterConfig(defaultFilter)}>
+                        <button className="btn-reset-outline" style={{ marginRight: "auto" }} onClick={() => setTempFilterConfig(defaultFilter)}>
                             Reset Filters to Default
                         </button>
                         <button className="btn-cancel" onClick={closeModal}>
@@ -993,9 +742,7 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
                         <button className="btn-cancel" onClick={closeModal}>
                             Cancel
                         </button>
-                        <button
-                            className="btn-apply"
-                            onClick={handleStartBatch}>
+                        <button className="btn-apply" onClick={handleStartBatch}>
                             START BATCH DOWNLOAD
                         </button>
                     </>
@@ -1012,9 +759,7 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
                         <button className="btn-cancel" onClick={closeModal}>
                             Cancel
                         </button>
-                        <button
-                            className="btn-apply"
-                            onClick={() => handleEnqueueDownloads("listed")}>
+                        <button className="btn-apply" onClick={() => handleEnqueueDownloads("listed")}>
                             ENQUEUE CHATS FOR DOWNLOAD
                         </button>
                     </>
@@ -1031,9 +776,7 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
                         <button className="btn-cancel" onClick={closeModal}>
                             Cancel
                         </button>
-                        <button
-                            className="btn-apply"
-                            onClick={() => handleEnqueueDownloads("selected")}>
+                        <button className="btn-apply" onClick={() => handleEnqueueDownloads("selected")}>
                             ENQUEUE CHATS FOR DOWNLOAD
                         </button>
                     </>
@@ -1046,138 +789,73 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
                 <div className="controls-row">
                     <div className="controls-row-left">
                         <div className="search-wrapper">
-                            <input
-                                type="text"
-                                className="search-box"
-                                placeholder="Search by name, folder, old name, or ID..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
+                            <input type="text" className="search-box" placeholder="Search by name, folder, old name, or ID..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                             {searchQuery && (
-                                <button
-                                    className="clear-search-btn"
-                                    onClick={() => setSearchQuery("")}
-                                    title="Clear search">
+                                <button className="clear-search-btn" onClick={() => setSearchQuery("")} title="Clear search">
                                     ✕
                                 </button>
                             )}
                         </div>
                         <div className="btn-group">
-                            <button
-                                className="control-btn"
-                                onClick={() => openModal("sort")}>
+                            <button className="control-btn" onClick={() => openModal("sort")}>
                                 Sort
                             </button>
-                            <button
-                                className="control-btn"
-                                onClick={() => openModal("filter")}>
+                            <button className="control-btn" onClick={() => openModal("filter")}>
                                 Filter
                             </button>
                         </div>
                     </div>
                     <div className="stats-text">
                         <span>
-                            Showing{" "}
-                            <span className="highlight">{visibleChats}</span> of{" "}
-                            {totalChats} Chats (Filtered:{" "}
-                            {filteredChats === 0 ? "None" : filteredChats})
+                            Showing <span className="highlight">{visibleChats}</span> of {totalChats} Chats (Filtered: {filteredChats === 0 ? "None" : filteredChats})
                         </span>
                         <small>
-                            Hidden Chats: {totalHiddenCount} | Disabled Chats:{" "}
-                            {totalDisabledCount} | Dead Chats: {totalDeadCount}
+                            Last Global Sync: {systemStatus?.last_global_sync || "Never"} | Hidden Chats: {totalHiddenCount} | Disabled Chats: {totalDisabledCount} | Dead Chats: {totalDeadCount}
                         </small>
                     </div>
                 </div>
 
                 <div className="controls-row">
                     <div className="btn-group">
-                        <button
-                            className={`control-btn primary ${isBatchBusy ? "busy-state" : ""}`}
-                            disabled={isBatchBusy}
-                            title="Starts downloading all enabled chats that are part of the Batch"
-                            onClick={() => openModal("batch")}>
-                            {isBatchBusy
-                                ? "Batch Active..."
-                                : "Start Batch Download"}
+                        <button className={`control-btn primary ${isBatchBusy ? "busy-state" : ""}`} disabled={isBatchBusy} title="Starts downloading all enabled chats that are part of the Batch" onClick={() => openModal("batch")}>
+                            {isBatchBusy ? "Batch Active..." : "Start Batch Download"}
                         </button>
-                        <button
-                            className={`control-btn primary ${isSyncBusy ? "busy-state" : ""}`}
-                            disabled={isSyncBusy}
-                            title="Syncs with your Telegram account, refreshing metadata"
-                            onClick={handleGlobalSync}>
-                            {isSyncBusy
-                                ? "Syncing..."
-                                : "Sync with Telegram Servers"}
+                        <button className={`control-btn primary ${isSyncBusy ? "busy-state" : ""}`} disabled={isSyncBusy} title="Syncs with your Telegram account, refreshing metadata" onClick={handleGlobalSync}>
+                            {isSyncBusy ? "Syncing..." : "Sync with Telegram Servers"}
                         </button>
                     </div>
                     <div className="btn-group">
                         {selectedChats.size > 0 ? (
                             <>
-                                <button
-                                    className="control-btn"
-                                    onClick={() => handleBulkToggle("enabled")}>
-                                    {isAllEnabled
-                                        ? "Disable Selected"
-                                        : "Enable Selected"}
+                                <button className="control-btn" onClick={() => handleBulkToggle("enabled")}>
+                                    {isAllEnabled ? "Disable Selected" : "Enable Selected"}
                                 </button>
-                                <button
-                                    className="control-btn"
-                                    onClick={() => handleBulkToggle("hidden")}>
-                                    {isAllHidden
-                                        ? "Unhide Selected"
-                                        : "Hide Selected"}
+                                <button className="control-btn" onClick={() => handleBulkToggle("hidden")}>
+                                    {isAllHidden ? "Unhide Selected" : "Hide Selected"}
                                 </button>
-                                <button
-                                    className="control-btn"
-                                    onClick={() =>
-                                        handleBulkToggle("is_batch")
-                                    }>
-                                    {isAllBatch
-                                        ? "Remove Selected from Batch"
-                                        : "Add Selected to Batch"}
+                                <button className="control-btn" onClick={() => handleBulkToggle("is_batch")}>
+                                    {isAllBatch ? "Remove Selected from Batch" : "Add Selected to Batch"}
                                 </button>
-                                <button
-                                    className="control-btn"
-                                    onClick={() => handleBulkToggle("defer")}>
-                                    {isAllDeferred
-                                        ? "Remove Selected from Deferred List"
-                                        : "Add Selected to Deferred List"}
+                                <button className="control-btn" onClick={() => handleBulkToggle("defer")}>
+                                    {isAllDeferred ? "Remove Selected from Deferred List" : "Add Selected to Deferred List"}
                                 </button>
-                                <button
-                                    className="control-btn accent"
-                                    onClick={() =>
-                                        openModal("selected-download")
-                                    }>
+                                <button className="control-btn accent" onClick={() => openModal("selected-download")}>
                                     Download Selected ({selectedChats.size})
                                 </button>
-                                <button
-                                    className="control-btn accent"
-                                    onClick={() => handleSyncGroup("selected")}>
+                                <button className="control-btn accent" onClick={() => handleSyncGroup("selected")}>
                                     Sync Selected ({selectedChats.size})
                                 </button>
-                                <button className="control-btn primary">
-                                    Archive Selected ({selectedChats.size})
-                                </button>
+                                <button className="control-btn primary">Archive Selected ({selectedChats.size})</button>
                             </>
                         ) : (
                             <>
-                                <button
-                                    className="control-btn primary"
-                                    title="Starts download for all enabled chats in the database"
-                                    onClick={() =>
-                                        openModal("listed-download")
-                                    }>
+                                <button className="control-btn primary" title="Starts download for all enabled chats in the database" onClick={() => openModal("listed-download")}>
                                     Download Listed Chats
                                 </button>
-                                <button
-                                    className="control-btn primary"
-                                    title="Syncs all enabled chats in the database"
-                                    onClick={() => handleSyncGroup("listed")}>
+                                <button className="control-btn primary" title="Syncs all enabled chats in the database" onClick={() => handleSyncGroup("listed")}>
                                     Sync Listed Chats
                                 </button>
-                                <button
-                                    className="control-btn primary"
-                                    title="Archive all enabled chats.">
+                                <button className="control-btn primary" title="Archive all enabled chats.">
                                     Archive Listed Chats
                                 </button>
                             </>
@@ -1189,12 +867,7 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
             {/* --- GRID HEADER --- */}
             <div className="chat-grid-header">
                 <div className="cell checkbox-cell">
-                    <input
-                        type="checkbox"
-                        checked={isAllSelected}
-                        onChange={handleSelectAll}
-                        title="Select all visible"
-                    />
+                    <input type="checkbox" checked={isAllSelected} onChange={handleSelectAll} title="Select all visible" />
                 </div>
                 <div className="cell">Identity & Configuration</div>
                 <div className="cell">Statistics</div>
@@ -1209,18 +882,7 @@ export default function ChatList({ chats, onDownload, onRefresh, setChats }) {
                     itemContent={(index, chat) => {
                         const activeStatus = getTaskForChat(chat.chat_id);
                         const isSelected = selectedChats.has(chat.chat_id);
-                        return (
-                            <ChatRow
-                                key={chat.chat_id}
-                                chat={chat}
-                                activeStatus={activeStatus}
-                                isSelected={isSelected}
-                                onSelect={handleSelectOne}
-                                onToggle={handleToggle}
-                                onDownload={onDownload}
-                                onKillTask={killTask}
-                            />
-                        );
+                        return <ChatRow key={chat.chat_id} chat={chat} activeStatus={activeStatus} isSelected={isSelected} onSelect={handleSelectOne} onToggle={handleToggle} onDownload={onDownload} onKillTask={killTask} />;
                     }}
                 />
             </div>
