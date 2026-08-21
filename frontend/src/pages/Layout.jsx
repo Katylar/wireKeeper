@@ -8,6 +8,7 @@ export default function Layout() {
 
     const activeProfile = systemStatus?.active_profile || "1";
 
+    // Checks if the orchestrator has an active task or pending queue
     const isBusy = Boolean(currentTask || (queue && queue.length > 0));
 
     const handleProfileSwitch = async (e) => {
@@ -62,9 +63,12 @@ export default function Layout() {
                     <NavLink to="/" className={({ isActive }) => (isActive ? "active" : "")}>
                         Chatlist
                     </NavLink>
-                    <NavLink to="/activity" className={({ isActive }) => (isActive ? "active" : "")}>
-                        Activity
+
+                    {/* --- NEW: Reactive Activity Link --- */}
+                    <NavLink to="/activity" className={({ isActive }) => `nav-item ${isActive ? "active" : ""} ${isBusy ? "task-running" : ""}`.trim()} style={isBusy ? { color: "#f9e2af", fontWeight: "bold", textShadow: "0 0 8px rgba(249, 226, 175, 0.4)" } : {}}>
+                        Activity {isBusy ? " ↻" : ""}
                     </NavLink>
+
                     <NavLink to="/settings" className={({ isActive }) => (isActive ? "active" : "")}>
                         Settings
                     </NavLink>
@@ -103,7 +107,6 @@ export default function Layout() {
                                 fontWeight: "bold",
                                 opacity: isSwitching || isBusy ? 0.6 : 1,
                             }}>
-                            {/* --- NEW: Dynamic Account Iteration! --- */}
                             {systemStatus?.accounts?.map((acc) => (
                                 <option key={acc.id} value={acc.id}>
                                     {acc.name}

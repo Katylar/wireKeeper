@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 
 const WS_URL = "ws://localhost:39486/ws";
 const API_BASE = "http://localhost:39486/api";
@@ -99,7 +99,6 @@ export const WebSocketProvider = ({ children }) => {
                             },
                         ]);
                         break;
-                    // --- NEW: Global Sync Listeners ---
                     case "sync_start":
                         setActiveScans((prev) => ({
                             ...prev,
@@ -112,7 +111,6 @@ export const WebSocketProvider = ({ children }) => {
                             global_sync: { scanned: data.scanned, changes: data.changes },
                         }));
                         break;
-                    // ----------------------------------
                     case "scan_start":
                         setActiveScans((prev) => ({
                             ...prev,
@@ -245,44 +243,47 @@ export const WebSocketProvider = ({ children }) => {
 
     const getTaskForChat = useCallback((chatId) => taskMap.get(chatId) || null, [taskMap]);
 
-    const killTask = async (taskId) => {
+    // --- FIXED: Wrap all context functions in useCallback ---
+    const killTask = useCallback(async (taskId) => {
         await fetch(`${API_BASE}/queue/${taskId}`, { method: "DELETE" });
-    };
-    const killBatch = async (batchId) => {
+    }, []);
+
+    const killBatch = useCallback(async (batchId) => {
         await fetch(`${API_BASE}/queue/batch/${batchId}`, { method: "DELETE" });
-    };
+    }, []);
 
-    const killAllSingles = async () => {
+    const killAllSingles = useCallback(async () => {
         await fetch(`${API_BASE}/queue/singles`, { method: "DELETE" });
-    };
+    }, []);
 
-    const clearHistory = async () => {
+    const clearHistory = useCallback(async () => {
         await fetch(`${API_BASE}/history`, { method: "DELETE" });
         setTaskHistory([]);
-    };
+    }, []);
 
-    return (
-        <WebSocketContext.Provider
-            value={{
-                isConnected,
-                systemStatus,
-                refreshSystemStatus,
-                logs,
-                activeTasks,
-                activeScans,
-                finishedFiles,
-                taskHistory,
-                currentTask,
-                queue,
-                getTaskForChat,
-                killTask,
-                killBatch,
-                killAllSingles,
-                clearHistory,
-            }}>
-            {children}
-        </WebSocketContext.Provider>
+    // --- FIXED: Cache the entire context value dictionary ---
+    const contextValue = useMemo(
+        () => ({
+            isConnected,
+            systemStatus,
+            refreshSystemStatus,
+            logs,
+            activeTasks,
+            activeScans,
+            finishedFiles,
+            taskHistory,
+            currentTask,
+            queue,
+            getTaskForChat,
+            killTask,
+            killBatch,
+            killAllSingles,
+            clearHistory,
+        }),
+        [isConnected, systemStatus, refreshSystemStatus, logs, activeTasks, activeScans, finishedFiles, taskHistory, currentTask, queue, getTaskForChat, killTask, killBatch, killAllSingles, clearHistory],
     );
+
+    return <WebSocketContext.Provider value={contextValue}>{children}</WebSocketContext.Provider>;
 };
 
 export const useEngine = () => useContext(WebSocketContext);

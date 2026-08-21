@@ -35,6 +35,12 @@ export default function Activity() {
         };
     }, [currentTask, queue]);
 
+    // --- NEW: Memoize, reverse, and cap the history to prevent browser freezing ---
+    const recentHistory = useMemo(() => {
+        // Create a shallow copy, reverse it so newest is on top, and only keep the last 50
+        return [...taskHistory].reverse().slice(0, 50);
+    }, [taskHistory]);
+
     const handleKillBatch = () => {
         if (currentBatchId) killBatch(currentBatchId);
     };
@@ -80,9 +86,11 @@ export default function Activity() {
                         </div>
                     </div>
                     <div className="task-list">
-                        {singleTasks.map((task) => (
+                        {/* --- FIXED: Added .slice(0, 10) to prevent the DOM from freezing on massive queues --- */}
+                        {singleTasks.slice(0, 10).map((task) => (
                             <ChatUnit key={task.id} task={task} isRunning={currentTask?.id === task.id} />
                         ))}
+                        {singleTasks.length > 10 && <div className="queue-overflow">...and {singleTasks.length - 10} more tasks pending.</div>}
                     </div>
                 </section>
             )}
@@ -92,21 +100,25 @@ export default function Activity() {
                 <div className="section-header">
                     <h2>Session History</h2>
                     {taskHistory.length > 0 && (
-                        <button className="btn-kill-danger" onClick={clearHistory}>
-                            CLEAR HISTORY
-                        </button>
+                        <div className="batch-controls">
+                            <span className="batch-stats">
+                                Showing latest {recentHistory.length} of {taskHistory.length} entries
+                            </span>
+                            <button className="btn-kill-danger" onClick={clearHistory}>
+                                CLEAR HISTORY
+                            </button>
+                        </div>
                     )}
                 </div>
                 <div className="history-terminal">
-                    {taskHistory.length === 0 ? (
+                    {recentHistory.length === 0 ? (
                         <span className="text-muted">No completed tasks in the current session.</span>
                     ) : (
-                        taskHistory.map((hist, i) => (
+                        recentHistory.map((hist, i) => (
                             <div key={i} className={`history-card ${hist.stats?.status || "unknown"}`}>
                                 <div className="history-card-header">
                                     <div className="chat-title">
                                         <span className={`status-indicator ${hist.stats?.status || "unknown"}`}></span>
-                                        {/* --- NEW: Interactive React Router Link --- */}
                                         <Link to={`/chat/${hist.chat_id}`} style={{ color: "#89b4fa", textDecoration: "none", fontWeight: "bold" }}>
                                             Chat {hist.chat_id}
                                         </Link>{" "}

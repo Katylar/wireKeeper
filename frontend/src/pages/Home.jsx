@@ -5,7 +5,7 @@ import ChatList from "../components/ChatList";
 import "../styles/homepage.scss";
 
 export default function Home() {
-    const { systemStatus, activeTasks, activeScans } = useEngine();
+    const { systemStatus } = useEngine();
     const [chats, setChats] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const navigate = useNavigate();
@@ -20,7 +20,6 @@ export default function Home() {
         }
     }, []);
 
-    // Single effect handles setup check + initial fetch
     useEffect(() => {
         if (systemStatus === null) return;
 
@@ -32,24 +31,19 @@ export default function Home() {
         fetchChats().then(() => setIsLoading(false));
     }, [systemStatus, navigate, fetchChats]);
 
-    const handleStartDownload = async (chatId) => {
+    // --- FIXED: Memoize the generic download handler ---
+    const handleStartDownload = useCallback(async (chatId) => {
         await fetch(`http://localhost:39486/api/download/${chatId}`, {
             method: "POST",
         });
-    };
+    }, []);
 
     if (isLoading) return <p>Loading database...</p>;
 
     return (
         <div>
-            <ChatList
-                chats={chats}
-                activeTasks={activeTasks}
-                activeScans={activeScans}
-                onDownload={handleStartDownload}
-                onRefresh={fetchChats}
-                setChats={setChats}
-            />
+            {/* Removed redundant activeScans and activeTasks props */}
+            <ChatList chats={chats} onDownload={handleStartDownload} onRefresh={fetchChats} setChats={setChats} />
         </div>
     );
 }
